@@ -1,3 +1,5 @@
+Copyright 2015 James Sanderson
+
 /*
 
 	//    >>>>    START     -----------------------------    VBB Config    -----------------------------
