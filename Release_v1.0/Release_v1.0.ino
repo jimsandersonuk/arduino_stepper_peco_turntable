@@ -19,15 +19,15 @@ limitations under the License.
 	//    >>>>    START     -----------------------------    VBB Config    -----------------------------
 
 	import muvium.compatibility.arduino.EEPROM;
-	import muvium.compatibility.arduino.Servo; //<include <Servo.h>
-	import muvium.compatibility.arduino.LiquidCrystal; //<include <LiquidCrystal.h>
+	import muvium.compatibility.arduino.Servo; // <include <Servo.h>
+	import muvium.compatibility.arduino.LiquidCrystal; // <include <LiquidCrystal.h>
 	import muvium.compatibility.arduino.Serial;
 	import muvium.compatibility.arduino.Arduino;
 
-	class ReleaseV1 extends Arduino //Automatically Added VBB Framework Code - do not remove
+	class ReleaseV1 extends Arduino // Automatically Added VBB Framework Code - do not remove
 	{
 
-	//Define Corresponding Head and Tail
+	// Define Corresponding Head and Tail
 
 	LiquidCrystal lcd = new LiquidCrystal(this, 12, 13, 5, 4, 3, 2);
 
@@ -38,7 +38,7 @@ limitations under the License.
 	int storeStartTrack = 0;
 	String str1, str2, str3, str4, str5, str6;			// used as String builders within voids
 
-	//	Calibration Array
+	// Calibration Array
 
 	int sensorVal = digitalRead(3);					// enable Hall-effect Sensor on Pin 3
 	int [] arrayCalibrate = { 0, 0, 0, 0, 0 };		// Array to pass in calibration run results
@@ -53,9 +53,9 @@ limitations under the License.
 	// Programming LCD Keys variables
 
 	boolean programmingMode = false;
-	boolean programmingModeMoveForward = true;			//If in programming mode, are we moving forward?
-	//long programmingLastMoveMillis = 0;				//When was the last programming move done?
-	//static final int programRotateDelay = 100;		//Delay between steps in ms while holding button
+	boolean programmingModeMoveForward = true;			// If in programming mode, are we moving forward?
+	// long programmingLastMoveMillis = 0;				// When was the last programming move done?
+	// static final int programRotateDelay = 100;		// Delay between steps in ms while holding button
 
 	// Debug Variables
 	boolean	isDebugMode = true;		// Set debug to console default is off in INO
@@ -71,7 +71,7 @@ limitations under the License.
 	int runs = 0;				// Set Calibration runs
 	int lastRun = 0;			// Stores no of runs
 
-	//States for the main menu
+	// States for the main menu
 	int checkMenu = 0;				// Default menu value
 	int currentMenuItem = 0;		// Current selected menu
 	boolean	stayInMenu = true;
@@ -82,8 +82,8 @@ limitations under the License.
 	int mainDiff = 0;
 	static final int MOTOR_OVERSHOOT = 10;			// the amount of overshoot/ lash correction when approaching from CCW
 	int overshootDestination = -1;
-	static final int releaseTimeout_ms = 2000;		//reduced to 2 seconds for now
-	static final int  MOTOR_STEP_COUNT = 200 * 16;	//number of steps for a full rotation
+	static final int releaseTimeout_ms = 2000;		// reduced to 2 seconds for now
+	static final int  MOTOR_STEP_COUNT = 200 * 16;	// number of steps for a full rotation
 
 	// Parameters for turntable move
 
@@ -99,7 +99,7 @@ limitations under the License.
 	static final int  noTrack = 5;
 	int	distanceToGo = 0;
 
-	//Do display rotation
+	// Do display rotation
 	static final int displayRotateDelay = 5;		// This is the minimum delay in ms between steps of the stepper motor
 	boolean displayRotating = false;		// Is the "Display Rotate" function enabled?
 	boolean displayRotatingCW = true;		// In Display Rotate mode, are we rot
@@ -108,15 +108,15 @@ limitations under the License.
 	boolean isYesNo = false;
 	String overwriteHeader;
 
-	int forwardstep2() 	{return dummyStepper(1,  25); } //75 real
-	int backwardstep2() { return dummyStepper(-1, 25);  } //75 real
+	int forwardstep2() 	{return dummyStepper(1,  25); } // 75 real
+	int backwardstep2() { return dummyStepper(-1, 25);  } // 75 real
 
 
 	//    >>>>    START     ---------------------------    Arduino Setup     ---------------------------
 
 	void setup ()
 	{
-	//	Serial.begin(9600);		// Start Console logging
+	// Serial.begin(9600);		// Start Console logging
 	Serial.begin(57600);
 	lcd.begin(16, 2);		// set up the LCD's number of columns and rows:
 	newMenu = true;
@@ -132,7 +132,6 @@ limitations under the License.
 //    >>>>    START     -----------------------------    UNO Config    -----------------------------
 
 // Included Libraries
-//#include <SoftwareSerial.h>
 #include "Arduino.h"
 #include <DCC_Decoder\DCC_Decoder.h>
 #include <AccelStepper.h>
@@ -142,105 +141,101 @@ limitations under the License.
 #include <utility\Adafruit_PWMServoDriver.h>
 #include <LiquidCrystal.h>
 
-//	#include <Servo.h>	//servo library reference
+// #include <Servo.h>	// servo library reference
 
 // Definitions
 
-#define kDCC_INTERRUPT	0										// Define DCC commands to Arduino
-typedef struct { int address; } DCCAccessoryAddress;	// Address to respond to
+#define kDCC_INTERRUPT	0									// Define DCC commands to Arduino
+typedef struct { int address; } DCCAccessoryAddress;		// Address to respond to
 DCCAccessoryAddress gAddresses[7];							// Allows 7 DCC addresses: [XX] = number of addresses you need (including 0).
 
-LiquidCrystal lcd (8, 9, 4, 5, 6, 7);		// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd (8, 9, 4, 5, 6, 7);						// initialize the library with the numbers of the interface pins
 
 // Track Step Definitions
 
-//Define Corresponding Head and Tail	 UNO
-const int GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 };	// Array for Tail Tracks
-int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };		// Save EEPROM addresses to array - index 0 = calibration position
-const int PositionTrackDummy [7] = { 0, 710, 800, 890, 2310, 2400, 2490 };
-int storeTargetTrack = 0;							// Store Target Track position
-int storeStartTrack = 0;
-String str1, str2, str3, str4, str5, str6;
-// used as String builders within voids
-//	Calibration Array
+// Define Corresponding Head and Tail	 UNO
+const int GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 };									// Array for Tail Tracks
+int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };										// Save EEPROM addresses to array - index 0 = calibration position
+const int PositionTrackDummy [7] = { 0, 710, 800, 890, 2310, 2400, 2490 };			// Pre-defined Target Track position
+int storeTargetTrack = 0;															// Store Target Track position
+int storeStartTrack = 0;															// Store Start Track position
+String str1, str2, str3, str4, str5, str6;											// used as String builders within voids
+
+// Calibration Array
+
 int sensorVal = digitalRead (3);					// enable Hall-effect Sensor on Pin 3
-int arrayCalibrate[] = { 0, 0, 0, 0, 0 };		// Array to pass in calibration run results
-boolean isTrackCalibration = false;
+int arrayCalibrate[] = { 0, 0, 0, 0, 0 };			// Array to pass in calibration run results
+boolean isTrackCalibration = false;					// Track calibration mode on/off
 
 // Programme Track Positions
-int currentStepPosition = 0;	// current step number
-int storeProgTracks[] = { 0, 0, 0, 0, 0, 0 };
-boolean chkOverwrite = false;
+int currentStepPosition = 0;						// current step number
+boolean chkOverwrite = false;						// overwrite saved track position - default = no
 
 // Define custom characters
 byte upArrow[8] = { B00000, B00100, B01110, B10101, B00100, B00100, B00100, B00000 };	 		// Up Arrow character
 byte downArrow[8] = { B00000, B00100, B00100, B00100, B10101, B01110, B00100, B00000 };	 		// Down Arrow character
 byte rightArrow[8] = { B00000, B00000, B00100, B00010, B11111, B00010, B00100, B00000 };		// Right Arrow character
 byte leftArrow[8] = { B00000, B00000, B00100, B01000, B11111, B01000, B00100, B00000 };			// Left Arrow character
-byte upArrowScroll[8] = { B11111, B11011, B10001, B01010, B11011, B11011, B11011, B11111 };		// Up Arrow character
-byte downArrowScroll[8] = { B11111, B11011, B11011, B11011, B01010, B10001, B11011, B11111 };	// Down Arrow character
 byte bothArrows[8] = { B00100, B01110, B10101, B00100, B00100, B10101, B01110, B00100 };		// Up & Down Arrow character
-byte backup[8] = { B00100, B01110, B10101, B00100, B00100, B10100, B10100, B01000 };
+byte backup[8] = { B00100, B01110, B10101, B00100, B00100, B10100, B10100, B01000 };			// Menu Backup character
 
 
 // Programming LCD Keys variables
-boolean programmingMode = false;
-boolean programmingModeMoveForward = true;			//If in programming mode, are we moving forward?
-//long programmingLastMoveMillis = 0;				//When was the last programming move done?
-//static final int programRotateDelay = 100;				//Delay between steps in ms while holding button
+boolean programmingModeMoveForward = true;			// If in programming mode, are we moving forward?
+// long programmingLastMoveMillis = 0;				// When was the last programming move done?
+// static final int programRotateDelay = 100;		// Delay between steps in ms while holding button
 
 // KeyPad parameters
-int lcd_key = 0;			// current LCD key
-int adc_key_in = 0;			// read key press from analogue(0)
-int adc_key_prev = 0;		// previous key press
-int key = -1;				// default key
-int lastKey = 0;			// Saves key press
-int readAnalog = 0;			// Read value from Analogue Pin 1
-boolean newMenu = true;		// Is new menu
-int runs = 0;				// Set Calibration runs
-int lastRun = 0;			// Stores no of runs
+int lcd_key = 0;									// current LCD key
+int adc_key_in = 0;									// read key press from analogue(0)
+int adc_key_prev = 0;								// previous key press
+int key = -1;										// default key
+int lastKey = 0;									// Saves key press
+int readAnalog = 0;									// Read value from Analogue Pin 1 which is how lcd button shield communicates to UNO motherboard
+boolean newMenu = true;								// Is new menu
+int runs = 0;										// Set Calibration runs
+int lastRun = 0;									// Stores no of runs
 
 // Debug Variables
-boolean	isDebugMode = false;		// Set debug to console default is off
+boolean	isDebugMode = false;						// Set debug to console default is off
 
-//States for the main menu
-int checkMenu = 0;				// Default menu value
-int currentMenuItem = 0;	// Current selected menu
+// States for the main menu
+int checkMenu = 0;									// Default menu value
+int currentMenuItem = 0;							// Current selected menu
 
 // Parameters for Stepper
-boolean isReleased = false;				// isReleased tries to make sure the motor is not continuously released
-long stepperLastMoveTime = 0;
-int mainDiff = 0;
-const int MOTOR_OVERSHOOT = 10;			// the amount of overshoot/ lash correction when approaching from CCW
-int overshootDestination = -1;
-const int releaseTimeout_ms = 2000;		//reduced to 2 seconds for now
-const int  MOTOR_STEP_COUNT = 200 * 16;	//number of steps for a full rotation
+boolean isReleased = false;							// isReleased tries to make sure the motor is not continuously released
+long stepperLastMoveTime = 0;						// time taken for last stepper move
+int mainDiff = 0;									// difference between start and target positions
+const int MOTOR_OVERSHOOT = 10;						// the amount of overshoot/ lash correction when approaching from CCW
+int overshootDestination = -1;						// overshoot destination in CCW direct to take up backlash
+const int releaseTimeout_ms = 2000;					// reduced to 2 seconds for now
+const int  MOTOR_STEP_COUNT = 200 * 16;				// number of steps for a full rotation = 3200 steps
 
 // Parameters for turntable move
 
-boolean tableTargetHead = false;		//
-int tableTargetTrack = 0;
-int tableTargetPosition = 0;
-boolean newTargetLocation = false;
+boolean tableTargetHead = false;					// table is in Head mode
+int tableTargetTrack = 0;							// target track
+int tableTargetPosition = 0;						// step position of target track
+boolean newTargetLocation = false;					// new
 boolean inMotionToNewTarget = false;
 boolean isTurntableHead = true;
 boolean isTurntableHeadChanged = true;
 int currentTrack = 1;
 int newTrack = 1;
-//const int  noTrack = 5;
-int	distanceToGo = 0;
+int	distanceToGo = 0;								// distance from start to end for Dummy Stepper motor routine
 
 
-//Servo Stuff
-//	Servo brakeservo;				// create servo object to control a servo
-//	static final int servoBrake = 9;		// value for brake position
-//	static final int servoRelease = 2;		// value for release position
+// Servo Stuff
+// Servo brakeservo;								// create servo object to control a servo
+// static final int servoBrake = 9;				// value for brake position
+// static final int servoRelease = 2;				// value for release position
 
-//Do display rotation
-const int displayRotateDelay = 5;		// This is the minimum delay in ms between steps of the stepper motor
-boolean displayRotating = false;		// Is the "Display Rotate" function enabled?
-boolean displayRotatingCW = true;		// In Display Rotate mode, are we rot
-//int displayRotatingLastMoveMillis = 0;
+// Do display rotation
+const int displayRotateDelay = 5;					// This is the minimum delay in ms between steps of the stepper motor
+boolean displayRotating = false;					// Is the "Display Rotate" function enabled?
+boolean displayRotatingCW = true;					// In Display Rotate mode, are we rot
+// int displayRotatingLastMoveMillis = 0;
 
 // Helper declarations
 boolean isYesNo = false;
@@ -250,28 +245,28 @@ boolean	stayInMenu = false;
 //    >>>>    START     ---------------------------    Adafruit Setup    ---------------------------
 
 Adafruit_MotorShield AFMStop (0x60); // Default address, no jumpers
-Adafruit_StepperMotor *mystepper = AFMStop.getStepper (200, 2);	 //Connect stepper with 200 steps per revolution (1.8 degree) to the M3, M4 terminals (blue,yellow,green,red)
+Adafruit_StepperMotor *mystepper = AFMStop.getStepper (200, 2);	 // Connect stepper with 200 steps per revolution (1.8 degree) to the M3, M4 terminals (blue,yellow,green,red)
 
-//you can change these to SINGLE, DOUBLE, INTERLEAVE or MICROSTEP!
-//wrapper for the motor!(3200 Microsteps / revolution)
-//	void forwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
-//	void backwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
-//	void release2()	{ mystepper->release(); }
-//	AccelStepper stepper = AccelStepper(forwardstep2, backwardstep2);	// wrap the stepper in an AccelStepper object
+// you can change these to SINGLE, DOUBLE, INTERLEAVE or MICROSTEP!
+// wrapper for the motor!(3200 Microsteps / revolution)
+// void forwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
+// void backwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
+// void release2()	{ mystepper->release(); }
+// AccelStepper stepper = AccelStepper(forwardstep2, backwardstep2);	// wrap the stepper in an AccelStepper object
 
 
-int forwardstep2 () { return dummyStepper (1, 25); } //75 real
-int backwardstep2 () { return dummyStepper (-1, 25); } //75 real
+int forwardstep2 () { return dummyStepper (1, 25); } // 75 real
+int backwardstep2 () { return dummyStepper (-1, 25); } // 75 real
 //    <<<<    FINISH    ---------------------------    Adafruit Setup    ---------------------------
 
 //    >>>>    START     ---------------------------    Arduino Setup     ---------------------------
 
 void setup ()
 {
-	Serial.begin (9600);		// Start Console logging
-	lcd.begin (16, 2);		// set up the LCD's number of columns and rows:
+	Serial.begin (9600);							// Start Console logging
+	lcd.begin (16, 2);								// set up the LCD's number of columns and rows:
 	createCustomChars ();
-	//initialiseDCC ();
+	// initialiseDCC ();
 
 	newMenu = true;
 	readArrayEEPROM ();
@@ -288,15 +283,15 @@ void loop ()
 {
 	decideMenu (checkMenu);
 }
-//    <<<<    FINISH    -------------------------    Main Arduino Loop     -------------------------
+//     <<<<    FINISH    -------------------------    Main Arduino Loop     -------------------------
 
-///    >>>>    START     ----------------------------    Helper Voids    ----------------------------
+//     >>>>    START     ----------------------------    Helper Voids    ----------------------------
 
 void keyPadState ()
 {
 
-	adc_key_prev = lcd_key;	// Looking for changes
-	lcd_key = read_LCD_buttons ();	// read the buttons
+	adc_key_prev = lcd_key;							// Looking for changes
+	lcd_key = read_LCD_buttons ();					// read the buttons
 
 	if (adc_key_in < 1020)
 	{
@@ -307,7 +302,6 @@ void keyPadState ()
 			String str3 = String (lcd_key);
 			String strKeyOutput = str1 + str2 + str3;
 			displayOutput (true, strKeyOutput, "");
-
 			key = lcd_key;
 		}
 		else { key = 0; }
@@ -316,19 +310,17 @@ void keyPadState ()
 
 int read_LCD_buttons ()
 {
-	adc_key_in = analogRead (0);	// read the value from the sensor
-	delay (5); //switch debounce delay. Increase this delay if incorrect switch selections are returned.
-	int k = (analogRead (0) - adc_key_in); //gives the button a slight range to allow for a little contact resistance noise
-	if (5 < abs (k)) return 0;	// double checks the keypress. If the two readings are not equal +/-k value after debounce delay, it tries again.
-	// my buttons when read are centered at these values: 0, 144, 329, 504, 741
-	// we add approx 50 to those values and check to see if we are close
-	if (adc_key_in > 1000) return 0; // We make this the 1st option for speed reasons since it will be the most likely result
+	adc_key_in = analogRead (0);					// read the value from the sensor
+	delay (5);										// switch debounce delay. Increase this delay if incorrect switch selections are returned.
+	int k = (analogRead (0) - adc_key_in);			// gives the button a slight range to allow for a little contact resistance noise
+	if (5 < abs (k)) return 0;						// double checks the keypress. If the two readings are not equal +/-k value after debounce delay, it tries again. my buttons when read are centered at these values: 0, 144, 329, 504, 741 we add approx 50 to those values and check to see if we are close
+	if (adc_key_in > 1000)  return 0;				// We make this the 1st option for speed reasons since it will be the most likely result
 	if (adc_key_in < 50)	return 5;
 	if (adc_key_in < 195)	return 3;
 	if (adc_key_in < 380)	return 4;
 	if (adc_key_in < 555)	return 2;
 	if (adc_key_in < 790)	return 1;
-	return 0;	// when all others fail, return this...
+	return 0;										// when all others fail, return this...
 }
 void createCustomChars ()
 {
@@ -336,10 +328,8 @@ void createCustomChars ()
 	lcd.createChar (1, downArrow);
 	lcd.createChar (2, leftArrow);
 	lcd.createChar (3, rightArrow);
-	lcd.createChar (4, upArrowScroll);
-	lcd.createChar (5, downArrowScroll);
-	lcd.createChar (6, bothArrows);
-	lcd.createChar (7, backup);
+	lcd.createChar (4, bothArrows);
+	lcd.createChar (5, backup);
 
 }
 
@@ -356,22 +346,18 @@ void displayOutput (boolean consoleOnly, String rowA, String rowB)
 	}
 }
 
-void printToLCD (String rowA, String rowB)
+void printToLCD (String lcdHeader, String lcdFooter)
 {
 	lcd.clear ();
-	lcd.print (rowA);
+	lcd.print (lcdHeader);
 	lcd.setCursor (0, 1);
-	lcd.print (rowB);
-	String lcdRowA = String (F (""));
-	String lcdRowB = String (F (""));
+	lcd.print (lcdFooter);
 }
 
-void printToConsole (String rowA, String rowB)
+void printToConsole (String consoleHeader, String consoleFooter)		// Header void to pass code from void strings to console
 {
-	Serial.println (rowA);
-	Serial.println (rowB);
-	String lcdRowA = String (F (""));
-	String lcdRowB = String (F (""));
+	Serial.println (consoleHeader);
+	Serial.println (consoleFooter);
 }
 
 void startupLCD ()
@@ -391,31 +377,31 @@ void decideMenu (int inpSelMenu)
 	switch (checkMenu)
 	{
 		case 0:
-			mainMenu (0, 1, 4);
+			mainMenu (0, 1, 4);						// mainMenu loop
 			break;
 		case 1:
-			mainMenu (2, 3, 6);
+			mainMenu (2, 3, 6);						// turntable menu loop
 			break;
 		case 2:
-			mainMenu (4, 5, 4);
+			mainMenu (4, 5, 4);						// setup menu loop
 			break;
 		case 3:
-			//autoDCCMode();
+			// autoDCCMode();						// DCC controlled turntable loop
 			break;
 		case 4:
-			manualMode ();
+			manualMode ();							// enable manual mode loop
 			break;
 		case 5:
-			checkYesNo ();
+			checkYesNo ();							// enable checkYesNo loop
 			break;
 		case 6:
-			calibrateBridge ();
+			calibrateBridge ();						// calibrate turntable loop
 			break;
 		case 7:
-			selectProgrammedTargetTracks ();
+			selectProgrammedTargetTracks ();		// Program track step positions loop
 			break;
 		case 8:
-			selectSaveTracks ();
+			selectSaveTracks ();					// save programmed track step positions
 			break;
 	}
 }
@@ -436,12 +422,12 @@ void mainMenu (int selMenu1, int selMenu2, int menuItems)
 	}
 	else
 	{
-		if (currentMenuItem < 0) { currentMenuItem = menuItems; }	 //If we are out of bounds on the menu then reset it
-		else if (currentMenuItem > menuItems) { currentMenuItem = 0; }	//If we are out of bounds on the menu then reset it
+		if (currentMenuItem < 0) { currentMenuItem = menuItems; }			// If we are out of bounds on the menu then reset it
+		else if (currentMenuItem > menuItems) { currentMenuItem = 0; }		// If we are out of bounds on the menu then reset it
 
-		if (key != lastKey)	//If we have changed Index, saves re-draws.
+		if (key != lastKey)													// If we have changed Index, saves re-draws.
 		{
-			switch (key)
+			switch (key)													// Select function determined by key press
 			{
 				case 3: // Up
 					currentMenuItem = currentMenuItem - 1;
@@ -455,36 +441,36 @@ void mainMenu (int selMenu1, int selMenu2, int menuItems)
 					chooseSubMenu (selMenu1);
 					break;
 
-				case 1: //If Selected
+				case 1: // If Selected
 					chooseSubMenu (selMenu2);
 					break;
 			}
 		}
 
-		lastKey = key;	//Save the last State to compare.
-		delay (50);	//Small delay
+		lastKey = key;				// Save the last State to compare.
+		delay (50);					// Small delay
 		newMenu = false;
 	}
 }
 
-void chooseSubMenu (int subMenu)
+void chooseSubMenu (int subMenu)					// Chose which sub menu to display when selected or from resetMenu
 {
 	switch (subMenu)
 	{
 		case 0:
-			displayMainMenu (currentMenuItem);
+			displayMainMenu (currentMenuItem);		// Main Menu
 			break;
 		case 1:
 			selectMainMenu (currentMenuItem);
 			break;
 		case 2:
-			displaySubMenuA (currentMenuItem);
+			displaySubMenuA (currentMenuItem);		// Turntable menu
 			break;
 		case 3:
 			selectSubMenuA (currentMenuItem);
 			break;
 		case 4:
-			displaySubMenuB (currentMenuItem);
+			displaySubMenuB (currentMenuItem);		// Setup Menu
 			break;
 		case 5:
 			selectSubMenuB (currentMenuItem);
@@ -492,20 +478,20 @@ void chooseSubMenu (int subMenu)
 	}
 }
 
-void resetMenuList (int menuItems)
+void resetMenuList (int menuItems)					// Reset menu list based upon items in list per menu
 {
 	if (currentMenuItem < 0) { currentMenuItem = menuItems; }
 	else if (currentMenuItem > menuItems) { currentMenuItem = 0; }
 }
 
-int resetTracks (int currentTrack)
+int resetTracks (int currentTrack)					// Define no of tracks and if greater/less reset display
 {
 	if (currentTrack < 1) { currentTrack = 6; }
 	else if (currentTrack > 6) { currentTrack = 1; }
 	return currentTrack;
 }
 
-void resetMenu (int subMenu, int menuPosition)
+void resetMenu (int subMenu, int menuPosition)		// Return to original menu and position
 {
 	stayInMenu = false;
 	delay (1000);
@@ -515,14 +501,14 @@ void resetMenu (int subMenu, int menuPosition)
 	newMenu = true;
 }
 
-void getTrackTail (int trackCurrent, int trackTarget)
+void getTrackTail (int trackCurrent, int trackTarget)		// use array to determine corresponding head/tail position
 {
 	currentTrack = GetTrackTail[trackCurrent - 1];
 	newTrack = GetTrackTail[trackTarget - 1];
 	displayManualMove (newTrack);
 }
 
-void sortLowHigh (int a[], int size)
+void sortLowHigh (int a[], int size)				// arrange array in order of value
 {
 	for (int i = 0; i < (size - 1); i++)
 	{
@@ -538,7 +524,7 @@ void sortLowHigh (int a[], int size)
 	}
 }
 
-void checkYesNo ()
+void checkYesNo ()									// General void to check if user wants to update stored value
 {
 	checkMenu = 5;
 	stayInMenu = true;
@@ -594,7 +580,7 @@ void displayTrackPositions ()
 		str2 = String (i, DEC);
 		displayTrackPositionsHeader = String (str1 + str2);
 		str3 = String (F ("Saved Step: "));
-		//int getArrayStep = PositionTrack[i];
+		// int getArrayStep = PositionTrack[i];
 		str4 = String (PositionTrack[i], DEC);
 		displayTrackPositionsFooter = String (str3 + str4);
 		displayOutput (false, displayTrackPositionsHeader, displayTrackPositionsFooter);
@@ -602,6 +588,33 @@ void displayTrackPositions ()
 	}
 }
 
+	int convertStepTrack(String convType, int convertValue )
+	{
+		int returnValue = 0;
+		int counter = 0;
+		int getValue = 0;
+
+		if (convType == "StoT")
+		{
+			for (int i = 0; i < 7; i++)
+			{
+				if (PositionTrack[i] == convertValue)
+				{
+					returnValue = i;
+					break;
+				}
+				else {counter++;}
+			}
+		if (counter == 7) {return -1;}
+		}
+
+		if (convType == "TtoS")
+		{
+			 returnValue= PositionTrack[convertValue];
+		}
+
+		return returnValue;
+	}
 
 //    <<<<    FINISH    ----------------------------    Helper Voids    ----------------------------
 
@@ -646,19 +659,19 @@ int EEPROMReadlong (int address)
 void readArrayEEPROM ()
 {
 	int returnArray = 0;
-	//		int arraySize = sizeof(PositionTrack);
+	// int arraySize = sizeof(PositionTrack);
 	for (int i = 0; i < 7; i++)
 	{
 		returnArray = EEPROMReadlong (i);
 		PositionTrack[i] = returnArray;
-		//PositionTrack[i] = PositionTrackDummy[i];	 
+		// PositionTrack[i] = PositionTrackDummy[i];
 	}
 }
 
 void clearEEPROM ()
 {
 	int c = 0;
-	//unsigned int arraySize = sizeof (PositionTrack);
+	// unsigned int arraySize = sizeof (PositionTrack);
 	for (int i = 0; i < 7; i++)
 	{
 		if (EEPROMReadlong (i) != 0)
@@ -699,9 +712,8 @@ void initialiseDCC ()
 	DCC.SetupDecoder (0x00, 0x00, kDCC_INTERRUPT);
 }
 
-void ConfigureDecoder ()
-{ //Put all the decoder #'s you need here.	Remember to change
-	//DCCAccessoryAddress gAddresses[XX];(above) where XX = number of addresses you need.
+void ConfigureDecoder ()  // Put all the decoder #'s you need here.	Remember to change DCCAccessoryAddress gAddresses[XX];(above) where XX = number of addresses you need.
+{
 	gAddresses[0].address = 200;
 	gAddresses[1].address = 201;
 	gAddresses[2].address = 202;
@@ -730,11 +742,16 @@ void BasicAccDecoderPacket_Handler (int address, boolean activate, byte data)	//
 			str3 = String (F ("	Head/Tail = (1/0) : "));
 			str4 = String (enable, DEC);
 			str5 = str1 + str2 + str3 + str4;
+
+			tableTargetTrack = i;									// target track
+			tableTargetPosition = convertStepTrack("TtoS", i);		// step position of target track
+
+
 			displayOutput (true, str5, "");
-			//new stuff
+			// new stuff
 			tableTargetHead = enable;
 			tableTargetPosition = i;
-			//New packet and we have a new target location, set the flag
+			// New packet and we have a new target location, set the flag
 			newTargetLocation = true;
 			doStepperMove ();
 		}
@@ -747,7 +764,6 @@ void autoDCCMode ()
 	int addr = 0;
 	DCC.loop ();
 	// Bump to next address to test
-	if (++addr >= (int)(sizeof (gAddresses) / sizeof (gAddresses[0]))) { addr = 0; }
 
 	stepperTimer ();
 }
@@ -793,13 +809,12 @@ void selectMainMenu (int selMainMenu)
 
 	switch (selMainMenu)
 	{
-		case 0:		//	Setup Tracks
+		case 0:		// Setup Tracks
 
 			selectMainMenuFooter = String (F ("DCC Mode enabled"));
 			displayOutput (false, selectMainMenuHeader, selectMainMenuFooter);
 			break;
 		case 1:
-			programmingMode = false;
 			selectMainMenuHeader = String (F ("Manual Move"));
 
 			displayOutput (false, selectMainMenuHeader, selectMainMenuFooter);
@@ -870,7 +885,7 @@ void displaySubMenuA (int dispMenu)
 			displaySubMenuAFooter = String (F ("5 Main Menu"));
 			displayOutput (false, displaySubMenuAHeader, displaySubMenuAFooter);
 			lcd.setCursor (15,2);
-			lcd.write (byte (7));
+			lcd.write (byte (5));
 
 			break;
 	}
@@ -886,7 +901,7 @@ void selectSubMenuA (int selectSubMenu)
 
 	switch (selectSubMenu)
 	{
-		case 0:		//	Setup Tracks
+		case 0:		// Setup Tracks
 			selectSubMenuAHeader = String (F ("Track Positions"));
 			selectSubMenuAFooter = String (F ("Move bridge"));
 			displayOutput (false, selectSubMenuAHeader, selectSubMenuAFooter);
@@ -928,6 +943,10 @@ void selectSubMenuA (int selectSubMenu)
 	}
 }
 
+//    <<<<    FINISH    ------------------    LCD Menu - Turntable Setup Menu     ------------------
+
+//    >>>>    START     -----------------------    LCD Menu - Setup Menu     -----------------------
+
 void displaySubMenuB (int dispMenu)
 {
 	String displaySubMenuBHeader, displaySubMenuBFooter;
@@ -953,14 +972,11 @@ void displaySubMenuB (int dispMenu)
 			displaySubMenuBFooter = String (F ("4 Main Menu"));
 			displayOutput (false, displaySubMenuBHeader, displaySubMenuBFooter);
 			lcd.setCursor (15, 2);
-			lcd.write (byte (7));
+			lcd.write (byte (5));
 			break;
 
 	}
 }
-//    <<<<    FINISH    ------------------    LCD Menu - Turntable Setup Menu     ------------------
-
-//    >>>>    START     -----------------------    LCD Menu - Setup Menu     -----------------------
 
 void selectSubMenuB (int selectSubMenu)
 {
@@ -1091,7 +1107,10 @@ void displayManualMove (int dispMove) // passes across selected track
 
 	isTurntableHeadChanged = isTurntableHead;
 
-	calcLeastSteps (currentTrack, dispMove);
+//	calcLeastSteps (currentTrack, dispMove);
+	tableTargetPosition = dispMove;
+
+	SetStepperTargetLocation();
 
 	if (displayRotatingCW) { str1 = String (F ("CW: ")); }
 	else { str1 = String (F ("CCW: ")); }
@@ -1110,7 +1129,7 @@ void moveManualTurntableMain (int manMove)
 	key = 0;
 	do
 	{
-		//	newTargetLocation = PositionTrack[manMove];
+		// newTargetLocation = PositionTrack[manMove];
 		fakeTurnMove (currentTrack);
 	}
 	while (storeTargetTrack != currentTrack);
@@ -1119,12 +1138,12 @@ void moveManualTurntableMain (int manMove)
 	String str1 = String (F ("Reached Track "));
 	String str2 = String (currentTrack);
 	lcdRowA = str1 + str2;
-	//lcdRowB = ("UP=Exit	L/R=New"));
-	//displayOutput(false,lcdRowA, lcdRowB);
+	// lcdRowB = ("UP=Exit	L/R=New"));
+	// displayOutput(false,lcdRowA, lcdRowB);
 
-	// 		Arduino only
+	// Arduino only
 	lcd.setCursor (0, 1);
-	lcd.write (byte (6));
+	lcd.write (byte (4));
 	lcd.print (" =Exit New= ");
 	lcd.write (byte (2));
 	lcd.print ("|");
@@ -1141,6 +1160,7 @@ void moveManualTurntableMain (int manMove)
 	while (stayInMenu);
 }
 
+/*
 void calcLeastSteps (int trA, int trB)
 {
 
@@ -1150,7 +1170,7 @@ void calcLeastSteps (int trA, int trB)
 
 	if (newTargetLoc > 0)
 	{
-		//		int currentLoc = stepper.currentPosition();
+		//int currentLoc = stepper.currentPosition();
 		mainDiff = newTargetLoc - currentLoc;
 		if (mainDiff > getMotorStepCount) { mainDiff = mainDiff - MOTOR_STEP_COUNT; }
 		else if (mainDiff < -getMotorStepCount) { mainDiff = mainDiff + MOTOR_STEP_COUNT; }
@@ -1168,12 +1188,15 @@ void calcLeastSteps (int trA, int trB)
 		if (displayRotatingCW) { textMove = "CW"; }
 		else { textMove = "CCW"; }
 
-		//stepper.move(mainDiff);
+		// stepper.move(mainDiff);
 	}
 }
+*/
 
-void fakeTurnMove (int fakeMove)
+void fakeTurnMove(int fakeMove)
 {
+	int getStepsLeft = 0;
+
 	if (displayRotatingCW) { currentTrack = fakeMove + 1; }
 	else { currentTrack = fakeMove - 1; }
 
@@ -1186,7 +1209,15 @@ void fakeTurnMove (int fakeMove)
 	String str4 = String (storeTargetTrack);
 
 	String lcdRowA = str1 + str2 + str3 + str4;
-	delay (1000);
+
+	do
+	{
+		 getStepsLeft = convertStepTrack("TtoS", storeTargetTrack) - currentStepPosition;
+		dummyStepper(getStepsLeft, 75);
+		//delay (1000);
+	}
+	while (abs(getStepsLeft) != 0);
+
 
 	String str5 = String (F ("Track:"));
 	String str6 = String (currentTrack);
@@ -1300,16 +1331,16 @@ void selectProgrammedTargetTracks ()
 	{
 		switch (key)
 		{
-			case	3:			//If Up	== Large x 10 steps
+			case	3:			// If Up	== Large x 10 steps
 				currentTurntablePosition (true, +10);
 				break;
-			case 4: 		//If Down == Large x -10 steps
+			case 4: 		// If Down == Large x -10 steps
 				currentTurntablePosition (true, -10);
 				break;
-			case 2: 		//If Left	== -single steps
+			case 2: 		// If Left	== -single steps
 				currentTurntablePosition (true, -1);
 				break;
-			case 5: 		//If Right == single steps
+			case 5: 		// If Right == single steps
 				currentTurntablePosition (true, 1);
 				break;
 			case 1:
@@ -1388,7 +1419,7 @@ void currentTurntablePosition (boolean isMoving, int fakeMultiple)
 
 void selectSaveTracks ()
 {
-	//int test = currentStepPosition;
+	// int test = currentStepPosition;
 
 	checkMenu = 8;
 	String lcdRowA, lcdRowB, strD;
@@ -1402,7 +1433,7 @@ void selectSaveTracks ()
 
 	if (newMenu)
 	{
-		key = -1; //	If come from different menu do nothing
+		key = -1; // If come from different menu do nothing
 		runs = 1;
 		strD = String (runs);
 		lcdRowB = strC + strD;
@@ -1592,10 +1623,10 @@ void calibrateBridge ()
 		}
 	}
 
-	//Save the last State to compare.
+	// Save the last State to compare.
 
 	lastKey = key;
-	//	lastRun = runs;
+	// lastRun = runs;
 	newMenu = false;
 }
 
@@ -1611,8 +1642,8 @@ void displayCalibrationRuns (int r)
 	String str2 = String (r);
 	lcdRowB = str1 + str2;
 	displayOutput (false, lcdRowA, lcdRowB);
-	//	lcd.setCursor(10, 2);
-	//	lcd.write(byte(6));
+	// lcd.setCursor(10, 2);
+	// lcd.write(byte(6));
 }
 
 void calibrateBridgeRun (int c)
@@ -1731,8 +1762,8 @@ int dummyStepper (int dummySteps, int delaySteps)
 	int dummyStepPosition = 0;
 
 	if (delaySteps == 0) { delaySteps = 75; }
-	//		if (isRotatingCW){dummyStepPosition = currentStepPosition +1;}
-	//		else (dummyStepPosition = currentStepPosition -1;)
+	// if (isRotatingCW){dummyStepPosition = currentStepPosition +1;}
+	// else (dummyStepPosition = currentStepPosition -1;)
 
 	if (dummySteps > 0) { dummyStepPosition = currentStepPosition + 1; }
 	else { dummyStepPosition = currentStepPosition - 1; }
@@ -1749,8 +1780,8 @@ int dummyStepper (int dummySteps, int delaySteps)
 
 void doStepperMove ()
 {
-	//      stepper.run();	// Run the Stepper Motor
-	//      boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
+	// stepper.run();	// Run the Stepper Motor
+	// boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
 	boolean isInMotion = (abs (distanceToGo) > 0);
 	boolean newTargetSet = false;
 
@@ -1758,7 +1789,7 @@ void doStepperMove ()
 	if (newTargetLocation)
 	{
 		SetStepperTargetLocation ();
-		//          displayOutput(false,"Moving to ", "");
+		// displayOutput(false,"Moving to ", "");
 		newTargetSet = true;
 	}
 
@@ -1766,29 +1797,29 @@ void doStepperMove ()
 	{
 		if ((!isInMotion) && (!newTargetSet))
 		{
-			//str1 = String(F("Not Moving!	DtG: "));
-			//str1 = String(stepper.distanceToGo());
-			//String(F(" TP: "));
-			//str2 = String(stepper.targetPosition());
-			//String(F(" CP: "));
-			//str3 = String(stepper.currentPosition());
-			//String(F(" S: "));
-			//str4 = String(stepper.speed());
+		// str1 = String(F("Not Moving!	DtG: "));
+		// str1 = String(stepper.distanceToGo());
+		// String(F(" TP: "));
+		// str2 = String(stepper.targetPosition());
+		// String(F(" CP: "));
+		// str3 = String(stepper.currentPosition());
+		// String(F(" S: "));
+		// str4 = String(stepper.speed());
 
 		}
-		//release the brake
-		//	brakeservo.write(servoRelease);
-		//	delay(5);
-		//	inMotionToNewTarget = isInMotion;
+		// release the brake
+		// brakeservo.write(servoRelease);
+		// delay(5);
+		// inMotionToNewTarget = isInMotion;
 	}
 	else
 	{
-		//				if ((stepper.currentPosition() % MOTOR_STEP_COUNT) == 0)
+		// if ((stepper.currentPosition() % MOTOR_STEP_COUNT) == 0)
 		if ((currentStepPosition % MOTOR_STEP_COUNT) == 0)
 		{
-			//setCurrentPosition seems to always reset the position to 0, ignoring the parameter
+			// setCurrentPosition seems to always reset the position to 0, ignoring the parameter
 			str1 = String (F ("Current location: "));
-			//				str2 = String(stepper.currentPosition());
+			// str2 = String(stepper.currentPosition());
 			str2 = String (currentStepPosition);
 			str3 = String (F (" % STEPCOUNT.	Why here?"));
 			displayOutput (true, str1 + str2, str3);
@@ -1800,13 +1831,13 @@ void doStepperMove ()
 
 }
 
-//stepper timer subroutine came from here.}
+// stepper timer subroutine came from here.}
 
 //    ----------------------------------------------------------------------------------------------
 //
 // Subroutine: SetStepperTargetLocation()
-//	Takes the global variables: tableTargetHeadOrTail, and tableTargetPosition, and sets the stepper
-//	object moveTo() target position in steps-	inserts values back into "doStepperMove()"
+// Takes the global variables: tableTargetHeadOrTail, and tableTargetPosition, and sets the stepper
+// object moveTo() target position in steps-	inserts values back into "doStepperMove()"
 //
 //    ----------------------------------------------------------------------------------------------
 
@@ -1814,14 +1845,14 @@ void SetStepperTargetLocation ()
 {
 	int newTargetLoc = -1;
 	if (tableTargetHead)
-	{	//use head location variable
+	{	// use head location variable
 		{
 			newTargetLoc = PositionTrack[tableTargetPosition];
 			inMotionToNewTarget = true;
 		}
 	}
 	else
-	{	//use tail location variable
+	{	// use tail location variable
 		{
 			newTargetLoc = PositionTrack[tableTargetPosition];
 			inMotionToNewTarget = true;
@@ -1830,7 +1861,7 @@ void SetStepperTargetLocation ()
 
 	if (newTargetLoc > 0)
 	{
-		//int currentLoc = stepper.currentPosition();
+		// int currentLoc = stepper.currentPosition();
 		int currentLoc = currentStepPosition;
 		int mainDiff = newTargetLoc - currentLoc;
 		if (mainDiff > (MOTOR_STEP_COUNT / 2))
@@ -1848,15 +1879,15 @@ void SetStepperTargetLocation ()
 			overshootDestination = MOTOR_OVERSHOOT;
 		}
 		dummyStepper (mainDiff, 0);
-		//			stepper.move(mainDiff);
+		// stepper.move(mainDiff);
 	}
-	//programmingMode = false;
+	// programmingMode = false;
 	newTargetLocation = false;
 }
 
 //    ----------------------------------------------------------------------------------------------
 //
-//	Stepper Timer sub routine this runs from the main loop. It also supports the release function.
+// Stepper Timer sub routine this runs from the main loop. It also supports the release function.
 //
 //    ----------------------------------------------------------------------------------------------
 
@@ -1865,16 +1896,16 @@ void stepperTimer ()
 	int currentLoc = 0;
 
 	// Run the Stepper Motor //
-	//			stepper.run();
-	//		boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
+	// stepper.run();
+	// boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
 
 	boolean isInMotion = (abs (distanceToGo) > 0);
 
-	//Check if we have any distance to move for release() timeout.	Can check the
+	// Check if we have any distance to move for release() timeout.	Can check the
 	// buffered var isInMotion because we also check the other variables.
-	if (isInMotion || programmingMode)
+	if (isInMotion)
 	{
-		//We still have some distance to move, so reset the release timeout
+		// We still have some distance to move, so reset the release timeout
 		stepperLastMoveTime = millis ();
 		isReleased = false;
 	}
@@ -1886,45 +1917,45 @@ void stepperTimer ()
 			{
 
 				dummyStepper (overshootDestination, 0);
-				//					stepper.move(overshootDestination);
+				// stepper.move(overshootDestination);
 				overshootDestination = -1;
 			}
 
 			if (((millis () - stepperLastMoveTime) >= releaseTimeout_ms))
 			{
-				//If isReleased, don't release again.
+				// If isReleased, don't release again.
 				isReleased = true;
 				str1 = String (F ("Relative Current Position: "));
-				str2 = String (currentStepPosition);	//shows position the table thinks it is at (how it got here)
+				str2 = String (currentStepPosition);	// shows position the table thinks it is at (how it got here)
 				displayOutput (true, str1 + str2, "");
 
 				currentLoc = currentStepPosition;	// Resets the position to the actual positive number it should be
 
-				//					  str1 = String(stepper.currentPosition());	//shows position the table thinks it is at (how it got here)
-				//                    int currentLoc = stepper.currentPosition();	// Resets the position to the actual positive number it should be
+				// str1 = String(stepper.currentPosition());	// shows position the table thinks it is at (how it got here)
+				// int currentLoc = stepper.currentPosition();	// Resets the position to the actual positive number it should be
 
 				currentLoc = currentLoc % MOTOR_STEP_COUNT;
 
 				if (currentLoc < 0) { currentLoc += MOTOR_STEP_COUNT; }
 
 
-				//                    stepper.setCurrentPosition(currentLoc);
-				//                    stepper.moveTo(currentLoc);
+				// stepper.setCurrentPosition(currentLoc);
+				// stepper.moveTo(currentLoc);
 				dummyStepper (currentLoc, 0);
 
 
 
 
-				//                    String(F("	Actual Current Position: "));
-				//                    str2 = String(stepper.currentPosition());	// shows the position value corrected.
+				// String(F("Actual Current Position: "));
+				// str2 = String(stepper.currentPosition());	// shows the position value corrected.
 
-				//Set the servo brake
-				//	brakeservo.write(servoBrake);
-				//	delay(750);
+				// Set the servo brake
+				// brakeservo.write(servoBrake);
+				// delay(750);
 
-				//release the motor
-				//                  release2();
-				// str1 = String(F("	Brake Set & Motor Released "));
+				// release the motor
+				// release2();
+				// str1 = String(F("Brake Set & Motor Released "));
 
 			}
 		}
