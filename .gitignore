@@ -26,3 +26,8 @@
 *.exe
 *.out
 *.app
+*.sdf
+*.filters
+Release_v1.0/Visual Micro/.Release_v1.0.vsarduino.h
+*.xml
+Release_v1.0/Release_v1.0.vcxproj
