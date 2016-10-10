@@ -1,3 +1,5 @@
+
+
 /*Copyright 2015 James Sanderson
 Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -130,14 +132,23 @@ class BareBones extends Arduino //Automatically Added VBB Framework Code - do no
 
 	// Included Libraries
 		//#include <SoftwareSerial.h>
+		
 		#include "Arduino.h"
+		#include <SoftwareSerial.h>
 		#include <DCC_Decoder.h>
 		#include <AccelStepper.h>
 		#include <Wire.h>
 		#include <EEPROM.h>
 		#include <Adafruit_MotorShield.h>
-		#include <utility\Adafruit_PWMServoDriver.h>
-		#include <LiquidCrystal.h>
+		#include <Adafruit_PWMServoDriver.h>
+//		#include <LiquidCrystal.h>
+
+#include <SPI.h>
+#include <TFT.h>            // Arduino LCD library
+
+#define cs   10
+#define dc   9
+#define rst  8
 
 	//	#include <Servo.h>	//servo library reference
 
@@ -147,7 +158,9 @@ class BareBones extends Arduino //Automatically Added VBB Framework Code - do no
 	typedef struct	{ int address; } DCCAccessoryAddress;	// Address to respond to
 	DCCAccessoryAddress gAddresses[7];							// Allows 7 DCC addresses: [XX] = number of addresses you need (including 0).
 
-		LiquidCrystal lcd (8, 9, 4, 5, 6, 7);		// initialize the library with the numbers of the interface pins
+	//	LiquidCrystal lcd (8, 9, 4, 5, 6, 7);		// initialize the library with the numbers of the interface pins
+
+	TFT myScreen = TFT(CS, DC, RESET);
 
 		// Track Step Definitions
 
@@ -186,15 +199,15 @@ class BareBones extends Arduino //Automatically Added VBB Framework Code - do no
 	//static final int programRotateDelay = 100;				//Delay between steps in ms while holding button
 
 	// KeyPad parameters
-	int lcd_key = 0;			// current LCD key
-	int adc_key_in = 0;			// read key press from analogue(0)
-	int adc_key_prev = 0;		// previous key press
-	int key = -1;				// default key
-	int lastKey = 0;			// Saves key press
-	int readAnalog = 0;			// Read value from Analogue Pin 1
-	boolean newMenu = true;		// Is new menu
-	int runs = 0;				// Set Calibration runs
-	int lastRun = 0;			// Stores no of runs
+//	int lcd_key = 0;			// current LCD key
+//	int adc_key_in = 0;			// read key press from analogue(0)
+//	int adc_key_prev = 0;		// previous key press
+//	int key = -1;				// default key
+//	int lastKey = 0;			// Saves key press
+//	int readAnalog = 0;			// Read value from Analogue Pin 1
+//	boolean newMenu = true;		// Is new menu
+//	int runs = 0;				// Set Calibration runs
+//	int lastRun = 0;			// Stores no of runs
 
 	// Debug Variables
 	boolean	isDebugMode = false;		// Set debug to console default is off
@@ -265,8 +278,9 @@ class BareBones extends Arduino //Automatically Added VBB Framework Code - do no
 	void setup ()
 	{
 		Serial.begin (9600);		// Start Console logging
-		lcd.begin (16, 2);		// set up the LCD's number of columns and rows:
-		createCustomChars ();
+		//lcd.begin (16, 2);		// set up the LCD's number of columns and rows:
+		screen.begin();
+		//createCustomChars ();
 		//initialiseDCC ();
 
 		newMenu = true;
