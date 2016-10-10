@@ -131,7 +131,7 @@ class BareBones extends Arduino //Automatically Added VBB Framework Code - do no
 	// Included Libraries
 		//#include <SoftwareSerial.h>
 		#include "Arduino.h"
-		#include <DCC_Decoder\DCC_Decoder.h>
+		#include <DCC_Decoder.h>
 		#include <AccelStepper.h>
 		#include <Wire.h>
 		#include <EEPROM.h>
