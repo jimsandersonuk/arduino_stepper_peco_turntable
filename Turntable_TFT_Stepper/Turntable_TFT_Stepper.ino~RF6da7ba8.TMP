@@ -3,32 +3,26 @@ Name:    Turntable_TFT_Stepper.ino
 Created: 4/20/2017 12:21:05 PM
 Author:  jimsanderson
 */
-//#define DEBUG
 
-#include <AccelStepper.h>
-#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
 #include <Adafruit_MotorShield.h>
-#include "utility/Adafruit_MS_PWMServoDriver.h"
-
+#include <AccelStepper.h>
 #include <DCC_Decoder.h>
 
 #include <EEPROM.h>
-
-
-#ifdef DEBUG
+#include <Wire.h>
+//#include <SPI.h>
 #include <SoftwareSerial.h>
-#endif
 
 #include <Adafruit_GFX.h>// Core graphics library
 #include <Adafruit_TFTLCD.h> // Hardware-specific library
-#include <TouchScreen.h>
-//#include <SPI.h>
 //#include <TFT_Extension.h>
+#include <TouchScreen.h>
 
 #include <Fonts/FreeSans9pt7b.h>
-//#include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
-//#include <Fonts/FreeSerifItalic12pt7b.h>
+#include <Fonts/FreeSerifItalic12pt7b.h>
 
 //    >>>>    START     ------------------------------   TFT Setup    ------------------------------
 #define YP A3  // must be an analog pin, use "An" notation!
@@ -147,7 +141,7 @@ const int startAngle = abs(360 / screenRotation);
 byte menuPage = 0;
 
 const byte buttonArraySize = 16;
-unsigned int buttonArray[buttonArraySize][3];
+unsigned int buttonArray[buttonArraySize][4];
 String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<< + 10", "< + 1", "10 + >>", "1 + >" };
 
 const byte tabs = 4;
@@ -156,7 +150,6 @@ const byte tabHeight = 20;
 const byte tabPad = 3;
 const byte sidePadding = 14;
 const byte menuBorder = 6;
-byte tabWidth;
 
 const byte lengthTrack = 30;
 const byte buttonHeight = 30;
@@ -171,32 +164,22 @@ const int butActiveColour = ORANGE;
 Adafruit_MotorShield AFMStop(0x60); // Default address, no jumpers
 Adafruit_StepperMotor *mystepper = AFMStop.getStepper(200, 2);   //Connect stepper with 200 steps per revolution (1.8 degree) to the M3, M4 terminals (blue,yellow,green,red)
 																 //you can change these to SINGLE, DOUBLE, INTERLEAVE or MICROSTEP! wrapper for the motor!(3200 Microsteps / revolution)
+void forwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
+void backwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
 void release2() { mystepper->release(); }
-
-//#ifdef DEBUG
-	//int forwardstep2() { return dummyStepper(1, 25); } //75 real
-	//int backwardstep2() { return dummyStepper(-1, 25); } //75 real
-
-//#elif
-	void forwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
-	void backwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
-
-//#endif // DEBUG
-
 AccelStepper stepper = AccelStepper(forwardstep2, backwardstep2); // wrap the stepper in an AccelStepper object
 
+//int forwardstep2() { return dummyStepper(1, 25); } //75 real
+//int backwardstep2() { return dummyStepper(-1, 25); } //75 real
 
 //    <<<<    FINISH    ----------------------   Adafruit MotorShield Setup   ----------------------
 
 //    >>>>    START     --------------------------------   SETUP    --------------------------------
 void setup()
 {
-
-#ifdef DEBUG
 	Serial.begin(9600);
-	Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
-#endif
 
+	//Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
 	initialiseDCC();
 	tft.reset();
 	tft.begin(0x9325);
@@ -205,14 +188,11 @@ void setup()
 	tft.fillScreen(BLACK);
 
 	pinMode(13, OUTPUT);
-	startup();
-}
-void startup()
-{
+
 	tft.setCursor(5, 15);
 	tft.setTextColor(WHITE);
-	//tft.setTextSize(1);
-	tft.setFont(&FreeSansBold9pt7b);
+	tft.setTextSize(1);
+	tft.setFont(&FreeSerifItalic12pt7b);
 	tft.setCursor(30, yCentre);
 	tft.println(F("DCC Controlled Turntable"));
 	tft.setFont();
@@ -232,41 +212,12 @@ void loop()
 	sleepTFT();
 	//delay(3000);
 
-	digitalWrite(13, HIGH);
-	TSPoint p = ts.getPoint();
-	if (p.z > ts.pressureThreshhold)
-	{
-		if (touchButton(p.x, p.y) < tabs && touchButton(p.x, p.y) != -1)
-		{
-			switch (touchButton(p.x, p.y))
-			{
-			case 0:
-				AutoDccMenu();
-				break;
-			case 1:
-				ManualMove();
-				break;
-			case 2:
-				CalibrateMenu();
-				break;
-			case 3:
-				Programming();
-				break;
-			}
-		}
-		//else
-		//{
-		//	//turntable button pressed
-		//}
+	//digitalWrite(13, HIGH);
+	//TSPoint p = ts.getPoint();
+	//digitalWrite(13, LOW);
 
-		#ifdef DEBUG
-				Serial.print("Button pressed  = " + touchButton(p.x, p.y));
-		#endif // DEBUG
+	//drawTracks(false);
 
-	}
-
-	digitalWrite(13, LOW);	
-/*
 	while (pause)
 	{
 		//		drawTurntable(radius, GREY);
@@ -282,7 +233,6 @@ void loop()
 		tft.fillScreen(BLACK); // turn off screen
 		pause = false; //kill loop
 	}
-*/
 }
 //    >>>>    FINISH    ---------------------------------   LOOP   ---------------------------------
 
@@ -528,7 +478,7 @@ void MenuTabs(byte tabSelected)
 		{
 		}
 */
-		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);
+		writeButtonArray(buttonTextArray[i], tabX, tabY, tabHeight, tabWidth);
 
 		tft.setFont(&FreeSans9pt7b);
 		tft.setCursor(tabX + 2, tabY + 3);
@@ -592,9 +542,10 @@ void createTrackButtons(byte button, String buttonText, boolean isActive)
 	{
 		pX = findX(xCentre, radiusTurntable + lengthTrack, degPos);
 		pY = findY(yCentre, radiusTurntable + lengthTrack, degPos);
-		writeButtonArray(buttonText, pX, pY, 2);
+		writeButtonArray(buttonText, pX, pY, buttonHeight, buttonWidth);
 	}
-	
+
+
 	byte offsetX = -(buttonWidth / 2);
 	byte offsetY = -(buttonHeight / 2);
 
@@ -613,35 +564,10 @@ void createTrackButtons(byte button, String buttonText, boolean isActive)
 
 int touchButton(double tX, double tY)
 {	
-	byte pH;
-	byte pW;
-	byte buttonPressed = -1;
 
-	for (byte i = 0; i < sizeof(buttonArray) / sizeof(buttonArray[0]); i++)
-	{		
-		int pX = buttonArray[i][0];
-		int pY = buttonArray[i][0];
-		int bt = buttonArray[i][0];
 
-		switch (bt)
-		{
-		case 1:
-			pH = tabHeight;
-			pW = tabWidth;
-			break;
-		case 2:
-			pH = buttonHeight;
-			pW = buttonWidth;
-		}
 
-		if (tX>pX && tX<pX + pW && tY > pY && tY < pY + pH)
-		{
-			 buttonPressed = i;
-		}
-	}
 
-	return 0;
-	
 }
 
 int getDegreeCoordinates(int pX, int pY)
@@ -669,7 +595,7 @@ int findY(int cY, byte circleRad, int angle)
 	return cY + circleRad * cos(angle * PI / 180);
 }
 
-void writeButtonArray(String buttonText, int pX, int pY, int bt)// byte pH, byte pW)
+void writeButtonArray(String buttonText, int pX, int pY, byte pH, byte pW)
 {
 	byte arrayPos = -1;
 	
@@ -683,9 +609,8 @@ void writeButtonArray(String buttonText, int pX, int pY, int bt)// byte pH, byte
 	
 	buttonArray[arrayPos][0] = pX; // rectangle x point
 	buttonArray[arrayPos][1] = pY; // rectangle y point
-	buttonArray[arrayPos][2] = bt; // rectangle height
-	//buttonArray[arrayPos][2] = pH; // rectangle height
-	//buttonArray[arrayPos][3] = pW; // rectangle width
+	buttonArray[arrayPos][2] = pH; // rectangle height
+	buttonArray[arrayPos][3] = pW; // rectangle width
 
 }
 
@@ -709,15 +634,12 @@ int readButtonArray(String buttonText, char returnValue)
 	case 'pY':
 		return buttonArray[arrayPos][1];
 		break;
-	case 'bt':
-		return buttonArray[arrayPos][2];
-		break;
-	/*case 'pH':
+	case 'pH':
 		return buttonArray[arrayPos][2];
 		break;
 	case 'pW':
 		return buttonArray[arrayPos][3];
-		break;*/
+		break;
 	case 'pos':
 		return arrayPos;
 		break;
