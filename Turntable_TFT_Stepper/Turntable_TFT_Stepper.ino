@@ -11,13 +11,14 @@ Author:  jimsanderson
 
 #include <EEPROM.h>
 #include <Wire.h>
-#include <SPI.h>
+//#include <SPI.h>
 #include <SoftwareSerial.h>
 
 #include <Adafruit_GFX.h>// Core graphics library
 #include <Adafruit_TFTLCD.h> // Hardware-specific library
 //#include <TFT_Extension.h>
 #include <TouchScreen.h>
+
 #include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
 #include <Fonts/FreeSansBold9pt7b.h>
@@ -63,7 +64,7 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define GREY		0x8410
 
 Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
-int screenRotation = 3;
+byte screenRotation = 3;
 //    >>>>    FINISH    ------------------------------   TFT Setup    ------------------------------
 
 //    >>>>    START     --------------------------   Define DCC Control   --------------------------
@@ -78,11 +79,11 @@ DCCAccessoryAddress gAddresses[7]; // Allows 7 DCC addresses: [XX] = number of a
 
 //Define Corresponding Head and Tail   UNO
 
-const int GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 }; // Array for Tail Tracks
+const byte GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 }; // Array for Tail Tracks
 int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };   // Save EEPROM addresses to array - index 0 = calibration position
 int PositionTrackDummy[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 };
-int storeTargetTrack = 0;             // Store Target Track position
-int storeStartTrack = 0;
+byte storeTargetTrack = 0;             // Store Target Track position
+byte storeStartTrack = 0;
 
 //  Calibration Array
 int sensorVal = digitalRead(3);         // enable Hall-effect Sensor on Pin 3
@@ -111,52 +112,51 @@ boolean newTargetLocation = false;
 boolean inMotionToNewTarget = false;
 boolean isTurntableHead = true;
 boolean isTurntableHeadChanged = true;
-int currentTrack = 1;
-int newTrack = 1;
-int distanceToGo = 0;
+byte currentTrack = 1;
+byte newTrack = 1;
+byte distanceToGo = 0;
 const int displayRotateDelay = 5;   // This is the minimum delay in ms between steps of the stepper motor
 boolean displayRotating = false;    // Is the "Display Rotate" function enabled?
 boolean displayRotatingCW = true;   // In Display Rotate mode, are we rot
 long stepperLastMoveTime = 0;
 int mainDiff = 0;
-const int MOTOR_OVERSHOOT = 10;			// the amount of overshoot/ lash correction when approaching from CCW
-int overshootDestination = -1;
+const byte MOTOR_OVERSHOOT = 10;			// the amount of overshoot/ lash correction when approaching from CCW
+byte overshootDestination = -1;
 const int releaseTimeout_ms = 2000;		//reduced to 2 seconds for now
 const int  totalSteps = 200 * 16;		//number of steps for a full rotation
 
 //    >>>>    FINISH    --------------------   Parameters for turntable move    --------------------
 
 //    >>>>    START     -------------------------------   TFT Menu   -------------------------------
-int radiusTurntable = 75;
-int xCentre = tft.height() / 2;
-int yCentre = (tft.width() / 2);
-int turntableOffset = 25;
+byte radiusTurntable = 75;
+byte xCentre = tft.height() / 2;
+byte yCentre = (tft.width() / 2);
+byte turntableOffset = 25;
 
 int sleep = 0; // sleep counter
-int sleepTimer = 30000; // sleep after 30 secs
 boolean pause = true;
-int startAngle = abs(360 / screenRotation);
-int menuPage = 0;
+const int sleepTimer = 30000; // sleep after 30 secs
+const int startAngle = abs(360 / screenRotation);
 
-int buttonTabsX[7] = { 0, 0, 0, 0, 0, 0 };
-int buttonTabsY[7] = { 0, 0, 0, 0, 0, 0 };
+byte menuPage = 0;
 
-int tabs = 4;
-char menuTabText[4][10] = {"AutoDCC", "Manual", "Calibrate", "Program"};
-int tabHeight = 20;
-int tabPad = 3;
-int sidePadding = 14;
-int menuBorder = 6;
+const byte buttonArraySize = 16;
+unsigned int buttonArray[buttonArraySize][4];
+String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<< + 10", "< + 1", "10 + >>", "1 + >" };
 
-int lengthTrack = 30;
+const byte tabs = 4;
+//String menuTabText[4] = { "AutoDCC", "Manual", "Calibrate", "Program" };
+const byte tabHeight = 20;
+const byte tabPad = 3;
+const byte sidePadding = 14;
+const byte menuBorder = 6;
 
-int buttonTracksX[7] = { 0, 0, 0, 0, 0, 0 };
-int buttonTracksY[7] = { 0, 0, 0, 0, 0, 0 };
-int defButHeight = 30;
-int defButWidth = 30;
-int radiusButCorner = 4;
-int butColour = GREENYELLOW;
-int butActiveColour = ORANGE;
+const byte lengthTrack = 30;
+const byte buttonHeight = 30;
+const byte buttonWidth = 30;
+const byte radiusButCorner = 4;
+const int butColour = GREENYELLOW;
+const int butActiveColour = ORANGE;
 //    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
 
 //    >>>>    START     ----------------------   Adafruit MotorShield Setup   ----------------------
@@ -179,7 +179,7 @@ void setup()
 {
 	Serial.begin(9600);
 
-	Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
+	//Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
 	initialiseDCC();
 	tft.reset();
 	tft.begin(0x9325);
@@ -208,11 +208,9 @@ void setup()
 //    >>>>    START     ---------------------------------   LOOP   ---------------------------------
 void loop()
 {
-	sleepTimer++;
+	sleep++;
 	sleepTFT();
 	//delay(3000);
-
-
 
 	//digitalWrite(13, HIGH);
 	//TSPoint p = ts.getPoint();
@@ -224,7 +222,7 @@ void loop()
 	{
 		//		drawTurntable(radius, GREY);
 
-		for (int i = 0; i < 90; i++)
+		for (byte i = 0; i < 90; i++)
 		{
 			delay(10);
 			drawTurntableBridge((i - 1), false);
@@ -278,7 +276,7 @@ int EEPROMReadlong(int address)
 void readArrayEEPROM()
 {
 	int returnArray = 0;
-	for (int i = 0; i < 7; i++)
+	for (byte i = 0; i < 7; i++)
 	{
 		returnArray = EEPROMReadlong(i);
 		PositionTrack[i] = returnArray;
@@ -288,7 +286,7 @@ void readArrayEEPROM()
 void clearEEPROM()
 {
 	int c = 0;
-	for (int i = 0; i < 7; i++)
+	for (byte i = 0; i < 7; i++)
 	{
 		if (EEPROMReadlong(i) != 0)
 		{
@@ -333,7 +331,7 @@ void BasicAccDecoderPacket_Handler(int address, boolean activate, byte data)	// 
 
 	boolean enable = (data & 0x01) ? 1 : 0;
 
-	for (int i = 0; i < (int)(sizeof(gAddresses) / sizeof(gAddresses[0])); i++)
+	for (byte i = 0; i < (int)(sizeof(gAddresses) / sizeof(gAddresses[0])); i++)
 	{
 		if (address == gAddresses[i].address)
 		{
@@ -366,7 +364,7 @@ void drawAll( int turntableOffset, boolean calibrationMode)
 	drawTracks(calibrationMode);
 }
 
-void drawTurntable(int radius, int colour, int turnOffset)
+void drawTurntable(int radius, byte colour, byte turnOffset)
 {
 	tft.fillCircle(xCentre, yCentre + turnOffset, radius, colour);
 	tft.fillCircle(xCentre, yCentre + turnOffset, radius - 4, BLACK);
@@ -377,7 +375,7 @@ void drawTurntableBridge(int angle, boolean show)
 {
 	angle = angle - 90;
 	int top1, top2, bot1, bot2;
-	int radiusBridge = radiusTurntable - 7;
+	byte radiusBridge = radiusTurntable - 7;
 	int dispCol = GREY;	int dispCol1 = GREEN;	int dispCol2 = RED;
 
 	if (show != true)
@@ -403,7 +401,7 @@ void drawTurntableBridge(int angle, boolean show)
 	drawMarker((360 + angle) - 180, radiusBridge - 4, 2, dispCol2);
 }
 
-void drawTrackLine(int p1, int p2, int radius1, int radius2, int offset, int colour)
+void drawTrackLine(int p1, int p2, byte radius1, byte radius2, byte offset, int colour)
 {
 	int aX = findX(xCentre, radius1, p1);
 	int aY = findY(yCentre + turntableOffset, radius1, p1);
@@ -421,8 +419,8 @@ void drawMarker(int p1, int radius1, int size, int colour)
 
 void drawTracks(boolean isTrackCalibration)
 {
-	int i = 1;
-	int offset = 3;
+	byte i = 1;
+	byte offset = 3;
 
 	String buttonText = String(i);
 
@@ -456,17 +454,16 @@ float convertStepDeg(float unit, boolean toSteps)
 }
 
 //    >>>>    START     ----------------------------   Menu Functions   ----------------------------	
-void MenuTabs(int tabSelected)
+void MenuTabs(byte tabSelected)
 {
-	int tabX;
-	int tabY = menuBorder;
+	byte tabX;
+	byte tabY = menuBorder;
 
-	int lastTabX = 0;
+	byte lastTabX = 0;
 	int tabWidth = (tft.width() - ((sidePadding * 2) + (tabPad * (tabs - 1)))) / tabs;
 
-	for (int i = 0; i < tabs; i++)
+	for (byte i = 0; i < tabs; i++)
 	{
-
 		if (i == 0)
 			tabX = sidePadding;
 		else
@@ -475,16 +472,19 @@ void MenuTabs(int tabSelected)
 			tft.fillRect(tabX, tabY, tabWidth, tabHeight, LIGHTGREY);			
 		else
 			tft.fillRect(tabX, tabY, tabWidth, tabHeight, DARKGREY);
-
-		
-		if (String(menuTabText[i]).length > tabWidth - 2)
+				
+/*
+		if (buttonTextArray[i].length > tabWidth - 2)
 		{
-
 		}
+*/
+		writeButtonArray(buttonTextArray[i], tabX, tabY, tabHeight, tabWidth);
 
 		tft.setFont(&FreeSans9pt7b);
-		tft.print(menuTabText[i]);
+		tft.setCursor(tabX + 2, tabY + 3);
+		tft.print(buttonTextArray[i]);
 		lastTabX = tabX;
+		tft.setFont();
 	}
 
 	// Menu Frame
@@ -506,13 +506,13 @@ void ManualMove()
 	MenuTabs(menuPage);
 	drawAll(0, false);
 }
+
 void CalibrateMenu()
 {
 	menuPage = 2;
 	MenuTabs(menuPage);
 	drawAll(turntableOffset, true);
 }
-
 
 void Programming()
 {
@@ -531,45 +531,43 @@ void sleepTFT()
 	else sleep++;
 }
 
-void createTrackButtons(int button, String buttonText, boolean isActive)
+void createTrackButtons(byte button, String buttonText, boolean isActive)
 {
 	int degPos = convertStepDeg(PositionTrackDummy[button], false);
+	int pX =  readButtonArray(buttonText, 'pX');
+	int pY =  readButtonArray(buttonText, 'pY');
+	byte buttonColour = 0;
 
-	int pX = buttonTracksX[button];
-	int pY = buttonTracksY[button];
-
-	if (pX == 0)
+	if (pX == 0 || pY == 0)
 	{
 		pX = findX(xCentre, radiusTurntable + lengthTrack, degPos);
-		buttonTracksX[button] = pX;
-	}
-
-	if (pY == 0)
-	{
 		pY = findY(yCentre, radiusTurntable + lengthTrack, degPos);
-		buttonTracksY[button] = pY;
+		writeButtonArray(buttonText, pX, pY, buttonHeight, buttonWidth);
 	}
 
-	if (buttonTracksY[button] = 0) { buttonTracksY[button] = pY; }
 
-	int offsetX = -(defButWidth / 2);
-	int offsetY = -(defButHeight / 2);
+	byte offsetX = -(buttonWidth / 2);
+	byte offsetY = -(buttonHeight / 2);
 
-	if (quadrant(getDegreeCoordinates(pX, pY)) == 0) { offsetY = -defButHeight; }
+	if (quadrant(getDegreeCoordinates(pX, pY)) == 0) { offsetY = -buttonHeight; }
 
-	if (isActive == true)  butColour = butActiveColour;
+	if (isActive == true) buttonColour = butActiveColour;
 
-	tft.fillRoundRect(pX - offsetX, pY - offsetY, defButHeight, defButWidth, radiusButCorner, butColour);
-	tft.drawRoundRect(pX - offsetX - 2, pY - offsetY - 2, defButHeight - 2, defButWidth - 2, radiusButCorner, BLACK);
-	tft.setCursor(pX + (defButHeight / 3), pY + (defButWidth / 3));
+	tft.fillRoundRect(pX - offsetX, pY - offsetY, buttonHeight, buttonWidth, radiusButCorner, buttonColour);
+	tft.drawRoundRect(pX - offsetX - 2, pY - offsetY - 2, buttonHeight - 2, buttonWidth - 2, radiusButCorner, BLACK);
+	tft.setCursor(pX + (buttonHeight / 3), pY + (buttonWidth / 3));
 	tft.setFont(&FreeSansBold9pt7b);
 	tft.setTextColor(BLACK);
 	tft.print(buttonText);
 	tft.setFont();
 }
 
-void touchButton(int tX, int tY)
-{
+int touchButton(double tX, double tY)
+{	
+
+
+
+
 }
 
 int getDegreeCoordinates(int pX, int pY)
@@ -582,20 +580,76 @@ int getDegreeCoordinates(int pX, int pY)
 	return deg;
 }
 
-int quadrant(int deg)
+byte quadrant(int deg)
 {
-	return int(deg / 45);
+	return byte(deg / 45);
 }
 
-int findX(int cX, int circleRad, int angle)
+int findX(int cX, byte circleRad, int angle)
 {
 	return cX + circleRad * cos(angle * PI / 180);
 }
 
-int findY(int cY, int circleRad, int angle)
+int findY(int cY, byte circleRad, int angle)
 {
 	return cY + circleRad * cos(angle * PI / 180);
 }
+
+void writeButtonArray(String buttonText, int pX, int pY, byte pH, byte pW)
+{
+	byte arrayPos = -1;
+	
+	for (byte i = 0; i < sizeof(buttonTextArray) / sizeof(buttonTextArray[0]); i++)
+	{
+		if (buttonTextArray[i] == buttonText)
+		{
+			arrayPos = i;
+		}
+	}
+	
+	buttonArray[arrayPos][0] = pX; // rectangle x point
+	buttonArray[arrayPos][1] = pY; // rectangle y point
+	buttonArray[arrayPos][2] = pH; // rectangle height
+	buttonArray[arrayPos][3] = pW; // rectangle width
+
+}
+
+int readButtonArray(String buttonText, char returnValue)
+{
+	byte arrayPos = -1;
+
+	for (byte i = 0; i < sizeof(buttonTextArray) / sizeof(buttonTextArray[0]); i++)
+	{
+		if (buttonTextArray[i] == buttonText)
+		{
+			arrayPos = i;
+		}
+	}
+
+	switch (returnValue)
+	{
+	case 'pX':
+		return buttonArray[arrayPos][0];
+		break;
+	case 'pY':
+		return buttonArray[arrayPos][1];
+		break;
+	case 'pH':
+		return buttonArray[arrayPos][2];
+		break;
+	case 'pW':
+		return buttonArray[arrayPos][3];
+		break;
+	case 'pos':
+		return arrayPos;
+		break;
+	default:
+		break;
+	}
+	return arrayPos;
+}
+
+
 
 //    >>>>    FINISH    ----------------------------   Menu Functions   ----------------------------
 
@@ -654,7 +708,7 @@ void doStepperMove()
 
 void SetStepperTargetLocation()
 {
-	int newTargetLoc = -1;
+	byte newTargetLoc = -1;
 	if (tableTargetHead)
 	{	//use head location variable	
 		newTargetLoc = PositionTrack[tableTargetPosition];
@@ -746,10 +800,10 @@ void stepperTimer()
 	}
 }
 
-void calcLeastSteps(int trA, int trB)
+void calcLeastSteps(byte trA, byte trB)
 {
-	int currentLoc = PositionTrack[trA];
-	int newTargetLoc = PositionTrack[trB];
+	byte currentLoc = PositionTrack[trA];
+	byte newTargetLoc = PositionTrack[trB];
 	int getMotorStepCount = (totalSteps / 2);
 
 	if (newTargetLoc > 0)
