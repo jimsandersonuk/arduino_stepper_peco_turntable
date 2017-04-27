@@ -3,54 +3,49 @@ Name:    Turntable_TFT_Stepper.ino
 Created: 4/20/2017 12:21:05 PM
 Author:  jimsanderson
 */
-//#define DEBUG
 
-#include <AccelStepper.h>
-#include <Wire.h>
-#include <Adafruit_MotorShield.h>
-#include "utility/Adafruit_MS_PWMServoDriver.h"
-
-#include <DCC_Decoder.h>
-
-#include <EEPROM.h>
-
+#define DEBUG
 
 #ifdef DEBUG
 #include <SoftwareSerial.h>
 #endif
 
+
+#include <AccelStepper.h>
+#include <Wire.h>
+#include <Adafruit_MotorShield.h>
+#include "utility/Adafruit_MS_PWMServoDriver.h"
+	
 #include <Adafruit_GFX.h>// Core graphics library
 #include <Adafruit_TFTLCD.h> // Hardware-specific library
+#include <stdint.h>	
 #include <TouchScreen.h>
 //#include <SPI.h>
 //#include <TFT_Extension.h>
 
-#include <Fonts/FreeSans9pt7b.h>
-//#include <Fonts/FreeSansBold12pt7b.h>
-#include <Fonts/FreeSansBold9pt7b.h>
-//#include <Fonts/FreeSerifItalic12pt7b.h>
+#include <Fonts/MenuRobotoBoldItalic10pt7b.h>
+#include <Fonts/TurnButtonsRobotoBold10pt7b.h>
+#include <Fonts/IconChars.h>
+#include <Fonts/Roboto5pt7b.h>
+#include <Fonts/RobotoBold5pt7b.h>
+
+
+#include <DCC_Decoder.h>
+#include <EEPROM.h>
+
 
 //    >>>>    START     ------------------------------   TFT Setup    ------------------------------
+
 #define YP A3  // must be an analog pin, use "An" notation!
 #define XM A2  // must be an analog pin, use "An" notation!
 #define YM 9   // can be a digital pin
 #define XP 8   // can be a digital pin
 
-////2.8inch_280-5
-//#define TS_MINX 180
-//#define TS_MINY 170
-//#define TS_MAXX 920
-//#define TS_MAXY 930
-//#define MINPRESSURE 10
-//#define MAXPRESSURE 1000
+#define MINPRESSURE 50
+#define MAXPRESSURE 1000
 
-// For better pressure precision, we need to know the resistance
-// between X+ and X- Use any multimeter to read it
-// For the one we're using, its 300 ohms across the X plate
-TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
-
-#define LCD_CS A3
-#define LCD_CD A2
+//	#define LCD_CS A3
+//	#define LCD_CD A2
 #define LCD_WR A1
 #define LCD_RD A0
 // optional
@@ -69,8 +64,10 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define GREENYELLOW 0xAFE5      /* 173, 255,  47 */
 #define GREY		0x8410
 
-Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+Adafruit_TFTLCD tft(YP, XM, LCD_WR, LCD_RD, LCD_RESET);
 byte screenRotation = 3;
+
 //    >>>>    FINISH    ------------------------------   TFT Setup    ------------------------------
 
 //    >>>>    START     --------------------------   Define DCC Control   --------------------------
@@ -88,8 +85,9 @@ DCCAccessoryAddress gAddresses[7]; // Allows 7 DCC addresses: [XX] = number of a
 const byte GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 }; // Array for Tail Tracks
 int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };   // Save EEPROM addresses to array - index 0 = calibration position
 int PositionTrackDummy[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 };
-byte storeTargetTrack = 0;             // Store Target Track position
-byte storeStartTrack = 0;
+//byte storeTargetTrack = 0;             // Store Target Track position
+//byte storeStartTrack = 0;
+byte selectedTracks[2] = { 0,0 };
 
 //  Calibration Array
 int sensorVal = digitalRead(3);         // enable Hall-effect Sensor on Pin 3
@@ -140,15 +138,16 @@ byte yCentre = (tft.width() / 2);
 byte turntableOffset = 25;
 
 int sleep = 0; // sleep counter
+boolean asleep = false;
 boolean pause = true;
 const int sleepTimer = 30000; // sleep after 30 secs
 const int startAngle = abs(360 / screenRotation);
 
 byte menuPage = 0;
 
-const byte buttonArraySize = 16;
+const byte buttonArraySize = 17;
 unsigned int buttonArray[buttonArraySize][3];
-String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<< + 10", "< + 1", "10 + >>", "1 + >" };
+String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","Save" };
 
 const byte tabs = 4;
 //String menuTabText[4] = { "AutoDCC", "Manual", "Calibrate", "Program" };
@@ -164,6 +163,7 @@ const byte buttonWidth = 30;
 const byte radiusButCorner = 4;
 const int butColour = GREENYELLOW;
 const int butActiveColour = ORANGE;
+
 //    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
 
 //    >>>>    START     ----------------------   Adafruit MotorShield Setup   ----------------------
@@ -178,13 +178,12 @@ void release2() { mystepper->release(); }
 	//int backwardstep2() { return dummyStepper(-1, 25); } //75 real
 
 //#elif
-	void forwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
-	void backwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
+	void forwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
+	void backwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
 
 //#endif // DEBUG
 
 AccelStepper stepper = AccelStepper(forwardstep2, backwardstep2); // wrap the stepper in an AccelStepper object
-
 
 //    <<<<    FINISH    ----------------------   Adafruit MotorShield Setup   ----------------------
 
@@ -207,19 +206,21 @@ void setup()
 	pinMode(13, OUTPUT);
 	startup();
 }
+
 void startup()
 {
 	tft.setCursor(5, 15);
 	tft.setTextColor(WHITE);
 	//tft.setTextSize(1);
-	tft.setFont(&FreeSansBold9pt7b);
+	//tft.setFont(&FreeSansBold9pt7b);
+	tft.setFont(&MenuRobotoBoldItalic10pt7b);
 	tft.setCursor(30, yCentre);
 	tft.println(F("DCC Controlled Turntable"));
 	tft.setFont();
 	delay(1000);
 	tft.fillScreen(BLACK);
 	MenuTabs(0);
-	drawTurntable(radiusTurntable, GREY, 0);
+	//drawTurntable(radiusTurntable, GREY, 0);
 	//drawTracks(false);
 	delay(3000);
 }
@@ -230,34 +231,28 @@ void loop()
 {
 	sleep++;
 	sleepTFT();
-	//delay(3000);
-
+	
 	digitalWrite(13, HIGH);
 	TSPoint p = ts.getPoint();
+	
 	if (p.z > ts.pressureThreshhold)
-	{
+	{			
+		delay(50);
+		sleep = 0;
+
+		if (asleep == true) 
+		{
+			decideMenuTab(menuPage);
+		}
+
 		if (touchButton(p.x, p.y) < tabs && touchButton(p.x, p.y) != -1)
 		{
-			switch (touchButton(p.x, p.y))
-			{
-			case 0:
-				AutoDccMenu();
-				break;
-			case 1:
-				ManualMove();
-				break;
-			case 2:
-				CalibrateMenu();
-				break;
-			case 3:
-				Programming();
-				break;
-			}
+			decideMenuTab(touchButton(p.x, p.y));
 		}
-		//else
-		//{
-		//	//turntable button pressed
-		//}
+		else
+		{
+			decideButtonPress(touchButton(p.x, p.y));
+		}
 
 		#ifdef DEBUG
 				Serial.print("Button pressed  = " + touchButton(p.x, p.y));
@@ -423,7 +418,7 @@ void drawTurntable(int radius, byte colour, byte turnOffset)
 
 void drawTurntableBridge(int angle, boolean show)
 {
-	angle = angle - 90;
+	int adjAngle = angle - (360 - startAngle);
 	int top1, top2, bot1, bot2;
 	byte radiusBridge = radiusTurntable - 7;
 	int dispCol = GREY;	int dispCol1 = GREEN;	int dispCol2 = RED;
@@ -433,12 +428,12 @@ void drawTurntableBridge(int angle, boolean show)
 		dispCol = BLACK; dispCol1 = BLACK; 	dispCol2 = BLACK;
 	}
 
-	if (angle > 270 || angle < -90) angle = 270;
+	if (adjAngle > startAngle || adjAngle < 360 - startAngle) adjAngle = startAngle;
 
-	top1 = ((360 - 3) + angle);
-	top2 = ((3 + angle) + 180);
-	bot1 = (3 + angle);
-	bot2 = (((360 - 3) + angle) - 180);
+	top1 = ((360 - 3) + adjAngle);
+	top2 = ((3 + adjAngle) + 180);
+	bot1 = (3 + adjAngle);
+	bot2 = (((360 - 3) + adjAngle) - 180);
 
 	drawTrackLine(top1, top2, radiusBridge, radiusBridge, 0, dispCol);
 	drawTrackLine(top1, top2, radiusBridge, radiusBridge, 1, dispCol);
@@ -447,8 +442,8 @@ void drawTurntableBridge(int angle, boolean show)
 	drawTrackLine(top1, bot1, radiusBridge, radiusBridge, 0, dispCol);
 	drawTrackLine(top2, bot2, radiusBridge, radiusBridge, 0, dispCol);
 
-	drawMarker((360 + angle), radiusBridge - 4, 2, dispCol1);
-	drawMarker((360 + angle) - 180, radiusBridge - 4, 2, dispCol2);
+	drawMarker((360 + adjAngle), radiusBridge - 4, 2, dispCol1);
+	drawMarker((360 + adjAngle) - 180, radiusBridge - 4, 2, dispCol2);
 }
 
 void drawTrackLine(int p1, int p2, byte radius1, byte radius2, byte offset, int colour)
@@ -511,6 +506,7 @@ void MenuTabs(byte tabSelected)
 
 	byte lastTabX = 0;
 	int tabWidth = (tft.width() - ((sidePadding * 2) + (tabPad * (tabs - 1)))) / tabs;
+	tft.setTextColor(BLACK);
 
 	for (byte i = 0; i < tabs; i++)
 	{
@@ -519,18 +515,21 @@ void MenuTabs(byte tabSelected)
 		else
 			tabX = lastTabX + tabWidth + tabPad;
 		if (tabSelected == i)
-			tft.fillRect(tabX, tabY, tabWidth, tabHeight, LIGHTGREY);			
-		else
-			tft.fillRect(tabX, tabY, tabWidth, tabHeight, DARKGREY);
-				
-/*
-		if (buttonTextArray[i].length > tabWidth - 2)
 		{
+			tft.fillRect(tabX, tabY, tabWidth, tabHeight, LIGHTGREY);
+			tft.setFont(&RobotoBold5pt7b);
 		}
-*/
-		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);
+		else
+		{
+			tft.fillRect(tabX, tabY, tabWidth, tabHeight, DARKGREY);
+			tft.setFont(&Roboto5pt7b);
+		}
 
-		tft.setFont(&FreeSans9pt7b);
+		//if (buttonTextArray[i].length > tabWidth - 2)
+		//{
+		//}
+
+		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);		
 		tft.setCursor(tabX + 2, tabY + 3);
 		tft.print(buttonTextArray[i]);
 		lastTabX = tabX;
@@ -540,6 +539,78 @@ void MenuTabs(byte tabSelected)
 	// Menu Frame
 	tft.fillRoundRect(menuBorder, menuBorder + tabHeight, tft.width() - (menuBorder * 2), tft.height() - tabHeight - (menuBorder * 2), 3, LIGHTGREY);
 	tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
+
+}
+
+void decideMenuTab(int tabPress)
+{
+	switch (tabPress)
+	{
+	case 0:
+		AutoDccMenu();
+		break;
+	case 1:
+		ManualMove();
+		break;
+	case 2:
+		CalibrateMenu();
+		break;
+	case 3:
+		Programming();
+		break;
+	}
+}
+
+void decideButtonPress(int buttonPress)
+{
+	if (menuPage > 0)
+	{		
+		if (menuPage = 2)
+		{
+			switch (buttonPress)
+			{
+			case 5: // track C		
+				// calibration Point
+				break;
+			case 12: // Move L +10
+				// step forward 10;
+				break;
+			case 13: // Move L +1
+				//step forward 1
+				break;
+			case 14:// Move R 
+				break;
+			case 15:// Move R 
+				break;
+			case 16: // Save Program
+				// write to EEPROM current position
+				break;
+			}
+		}
+
+		switch (buttonPress)
+		{
+		
+		case 6: // track 1		
+			break;
+		case 7: // track 2		
+			break;
+		case 8: // track 3
+			break;
+		case 9:	// track 4
+			break;
+		case 10: // track 5
+			break;
+		case 11: // track 6
+			break;
+		
+		}
+	}
+}
+
+void getTrackSelection()
+{
+
 
 }
 
@@ -576,6 +647,7 @@ void sleepTFT()
 
 	if (sleep >= sleepTimer)
 	{
+		asleep = true;
 		tft.fillScreen(BLACK);
 	}
 	else sleep++;
@@ -605,7 +677,7 @@ void createTrackButtons(byte button, String buttonText, boolean isActive)
 	tft.fillRoundRect(pX - offsetX, pY - offsetY, buttonHeight, buttonWidth, radiusButCorner, buttonColour);
 	tft.drawRoundRect(pX - offsetX - 2, pY - offsetY - 2, buttonHeight - 2, buttonWidth - 2, radiusButCorner, BLACK);
 	tft.setCursor(pX + (buttonHeight / 3), pY + (buttonWidth / 3));
-	tft.setFont(&FreeSansBold9pt7b);
+	tft.setFont(&TurnButtonsRobotoBold10pt7b);
 	tft.setTextColor(BLACK);
 	tft.print(buttonText);
 	tft.setFont();
@@ -621,7 +693,7 @@ int touchButton(double tX, double tY)
 	{		
 		int pX = buttonArray[i][0];
 		int pY = buttonArray[i][0];
-		int bt = buttonArray[i][0];
+		byte bt = buttonArray[i][0];
 
 		switch (bt)
 		{
@@ -718,7 +790,7 @@ int readButtonArray(String buttonText, char returnValue)
 	case 'pW':
 		return buttonArray[arrayPos][3];
 		break;*/
-	case 'pos':
+	case 'pA':
 		return arrayPos;
 		break;
 	default:
@@ -726,8 +798,6 @@ int readButtonArray(String buttonText, char returnValue)
 	}
 	return arrayPos;
 }
-
-
 
 //    >>>>    FINISH    ----------------------------   Menu Functions   ----------------------------
 
