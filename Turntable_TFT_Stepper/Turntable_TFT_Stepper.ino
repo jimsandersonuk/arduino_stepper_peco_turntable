@@ -22,12 +22,8 @@ Author:  jimsanderson
 #include <TouchScreen.h>
 //#include <SPI.h>
 //#include <TFT_Extension.h>
+
 #include <Fonts/FreeSansBold9pt7b.h>
-//#include <Fonts/MenuRobotoBoldItalic10pt7b.h>
-//#include <Fonts/TurnButtonsRobotoBold10pt7b.h>
-//#include <Fonts/IconChars.h>
-//#include <Fonts/Roboto5pt7b.h>
-//#include <Fonts/RobotoBold5pt7b.h>
 
 #include <DCC_Decoder.h>
 #include <EEPROM.h>
@@ -141,6 +137,9 @@ int xCentre = tft.height() / 2;
 int yCentre = (tft.width() / 2);
 int turntableOffset = 25;
 
+int fX = 0;
+int fY = 0;
+
 int sleep = 0; // sleep counter
 boolean asleep = false;
 boolean pause = true;
@@ -202,7 +201,8 @@ void setup()
 	Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
 #endif
 
-	initialiseDCC();
+	pixelFactorQuadrants();	// work out screen rotation and then apply ratation factoring to TouchScreen results
+	initialiseDCC();	//Start up DCC reading
 	tft.reset();
 	tft.begin(0x9325);
 
@@ -710,6 +710,21 @@ int touchButton(int tX, int tY)
 	int pW;
 	int buttonPressed = -1;
 
+	// touchscreen to Pixels based upon current screen rotation
+	int cX = ((tX - TS_MINX) / (TS_MAXX - TS_MINX)) * tft.width();
+	int cY = ((tY - TS_MINY) / (TS_MAXY - TS_MINY)) * tft.height();
+
+	if (fX < 0)
+	{
+		cX = 1 - cX;
+	}
+
+	if (fY < 0)
+	{
+		cY = 1 - cY;
+	}
+	//
+
 	for (int i = 0; i < sizeof(buttonTextArray) / sizeof(buttonTextArray[0]); i++)
 	{		
 		int pX = buttonArrayX[i];
@@ -727,14 +742,13 @@ int touchButton(int tX, int tY)
 			pW = buttonWidth;
 		}
 
-		if (tX>pX && tX<pX + pW && tY > pY && tY < pY + pH)
+		if (cX>pX && cX<pX + pW && cY > pY && cY < pY + pH)
 		{
 			 buttonPressed = i;
 		}
 	}
 
-	return 0;
-	
+	return buttonPressed;
 }
 
 int getDegreeCoordinates(int pX, int pY)
@@ -746,6 +760,14 @@ int getDegreeCoordinates(int pX, int pY)
 
 	return deg;
 }
+
+
+void pixelFactorQuadrants()
+{
+	fX = (int)(cos(((screenRotation * 90) * PI / 180)));
+	fY = (int)(sin(((screenRotation * 90) * PI / 180)));
+}
+
 
 int quadrant(int deg)
 {
