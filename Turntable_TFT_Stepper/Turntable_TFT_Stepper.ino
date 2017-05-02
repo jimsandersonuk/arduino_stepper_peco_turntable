@@ -10,7 +10,6 @@ Author:  jimsanderson
 #include <SoftwareSerial.h>
 #endif
 
-
 #include <AccelStepper.h>
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
