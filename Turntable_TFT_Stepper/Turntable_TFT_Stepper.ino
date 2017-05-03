@@ -35,10 +35,10 @@ Author:  jimsanderson
 #define YM 9   // can be a digital pin
 #define XP 8   // can be a digital pin
 
-#define TS_MINX 190
-#define TS_MINY 190
-#define TS_MAXX 890
-#define TS_MAXY 920
+#define TS_MINX 165
+#define TS_MINY 160
+#define TS_MAXX 900
+#define TS_MAXY 910
 
 #define MINPRESSURE 50
 #define MAXPRESSURE 1000
@@ -138,8 +138,8 @@ int xCentre = tft.height() / 2;
 int yCentre = (tft.width() / 2);
 int turntableOffset = 25;
 
-int fX = 0;
-int fY = 0;
+int refactorX = 0 ;
+int refactorY = 0 ;
 
 int sleep = 0; // sleep counter
 boolean asleep = false;
@@ -242,97 +242,65 @@ void loop()
 	digitalWrite(13, HIGH);
 	TSPoint p = ts.getPoint();
 
-	// scale from 0->1023 to tft.width
-	p.x = map(p.x, TS_MINX, TS_MAXX, tft.width(), 0);
-	p.y = map(p.y, TS_MINY, TS_MAXY, tft.height(), 0);
-
-#if LCDROTATION == 1
-	p.x = map(p.y, TS_MINY, TS_MAXY, 0, tft.width()); // rotate & scale to TFT boundaries
-	p.y = map(p.x, TS_MINX, TS_MAXX, tft.height(), 0);    //   ... USB port at upper left
-#elif LCDROTATION == 3
-	p.x = map(p.y, TS_MINY, TS_MAXY, tft.width(), 0); // rotate & scale to TFT boundaries
-	p.y = map(p.x, TS_MINX, TS_MAXX, 0, tft.height());    //   ... USB port at lower right
-#endif
-
-
-	if (p.z > ts.pressureThreshhold)
+	if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
 	{
-		delay(50);
-		//sleep = 0;
-
-		/*
-		if (asleep == true)
-		{
-			decideMenuTab(menuPage);
-		}
-		*/
-		int debounceButtonX = 0, debounceButtonY = 0;
-		int iTouchLoop = 0;
-         for (int i = 0; i<5; i++)
-		 {
-			 if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
-			 {
-				 delay(100);
-				 debounceButtonX = debounceButtonX + p.x;
-				 debounceButtonY = debounceButtonY + p.y;
-				 iTouchLoop++;
-#ifdef DEBUG
-				 Serial.println("pX = " + String(p.x));
-				 Serial.println(" pY = " + String(p.y));
-				 Serial.println();
-				 Serial.println("debounceX = " + String(debounceButtonX));
-				 Serial.println("debounceY = " + String(debounceButtonY));
-#endif // DEBUG
-			 }
-		 }
-
-#ifdef DEBUG
-		 Serial.println();
-		 Serial.println("Ave. debounceX = " + String(debounceButtonX/5));
-		 Serial.println("Ave. debounceY = " + String(debounceButtonY/5));
-		 Serial.println("-----------------------------------");
-#endif // DEBUG		 
-		 
-		 int selectedButton = touchButton(debounceButtonX/iTouchLoop, debounceButtonY/iTouchLoop );
-
-		//if (selectedButton < tabs && selectedButton != -1)
-		//{
-
-		//	//decideMenuTab(selectedButton);
-		//}s
-		//else
-		//{
-		//	//decideButtonPress(selectedButton);
-		//}
-
-#ifdef DEBUG
-		Serial.print("Button pressed  = " + String(selectedButton));
-#endif // DEBUG
-
+		translateLCD(p.x, p.y);
+		int selectedButton = touchButton(refactorX, refactorY);
+		Serial.println(selectedButton);
 	}
-
-	//digitalWrite(13, LOW);
 }
-	/*
-	while (pause)
-	{
-		//		drawTurntable(radius, GREY);
-
-		for (int i = 0; i < 90; i++)
-		{
-			delay(10);
-			drawTurntableBridge((i - 1), false);
-			drawTurntableBridge(i, true);
-			delay(100);
-		}
-
-		tft.fillScreen(BLACK); // turn off screen
-		pause = false; //kill loop
-		}
-	}
-*/
 
 //    >>>>    FINISH    ---------------------------------   LOOP   ---------------------------------
+
+// START   -TRANSLATE lcd
+
+void translateLCD(int tX, int tY)
+{
+
+	float rMinX, rMaxX, rMinY, rMaxY;
+
+	if (tX < TS_MINX) rMinX = tX;
+	else rMinX = TS_MINX;
+
+	if (tX > TS_MAXX) rMaxX = tX;
+	else rMaxX = TS_MAXX;
+
+	if (tY < TS_MINY) rMinY = tY;
+	else rMinY = TS_MINY;
+
+	if (tY > TS_MAXY) rMaxY = tY;
+	else rMaxY = TS_MAXY;
+
+	switch (LCDROTATION)
+	{
+	case 3:
+
+		float refY = 1-(((float)tX - (float)rMinX) / ((float)rMaxX - (float)rMinX)); //* tft.width();
+		float refX = 1-(((float)tY - (float)rMinY) / ((float)rMaxY - (float)rMinY)); // *tft.height();
+		refactorX = refX * tft.width();
+		refactorY = refY * tft.height();
+
+//#ifdef DEBUG
+//		Serial.println("-----------------------");
+////		Serial.println();
+////		Serial.println("pX = " + String(p.x));
+//		Serial.println("tX = " + String(tX));
+//		Serial.println("tY = " + String(tY));
+//		Serial.println("rMinX = " + String(rMinX));
+//		Serial.println("refY = " + String(refY));
+//		Serial.println("refX = " + String(refX));
+//		Serial.println("corrX = " + String(refactorX));
+//		Serial.println("corrY = " + String(refactorY));
+//		//Serial.println("-----------------------");
+//#endif
+		break;
+	}
+}
+
+
+
+// FINISH   -TRANSLATE lcd
+
 
 //    >>>>    START     --------------------------    EEPROM Commands     --------------------------
 
@@ -745,58 +713,28 @@ int touchButton(int tX, int tY)
 	// touchscreen to Pixels based upon current screen rotation
 	float cX = (((float)tX - (float)TS_MINX) / ((float)TS_MAXX - (float)TS_MINX)); //* tft.width();
 	float cY = (((float)tY - (float)TS_MINY) / ((float)TS_MAXY - (float)TS_MINY)); // *tft.height();
-	*/
+*/
+	
 #ifdef DEBUG
 	Serial.println("-----------------------------------");
-	Serial.println();
 	Serial.println("tX = " + String(tX));
 	Serial.println("tY = " + String(tY));
-	//Serial.println("cX = " + String(cX));
-	//Serial.println("cY = " + String(cY));
-	Serial.println("cX = ((" + String(tX) + " - " + String (TS_MINX) +") / (" + String(TS_MAXX) + " - " +  String(TS_MINX)+ ")) * " + String(tft.width()));
-	Serial.println("cY = ((" + String(tY) + " - " + String(TS_MINY) + ") / (" + String(TS_MAXY) + " - " + String(TS_MINY) + ")) * " + String(tft.height()));
-	//Serial.println("fX = " + String(fX));
-	//Serial.println("fY = " + String(fY));
 	Serial.println("-----------------------------------");
 #endif // DEBUG		
-
-	/*
-switch (screenRotation % 4)
-{ 
-case 1:
-	break;
-case 2 :
-	break;
-case 3:
-		pX = 1 - cY;
-		pY = 1 - cX;
-
-	break;  
-case 4:
-	break;
-
-}
-*/
-#ifdef DEBUG
-	Serial.println("-----------------------------------");
-	Serial.println();
-	Serial.println("Screen = " + String(screenRotation));
-	//Serial.println("Adj. cX = " + String(cX));
-	//Serial.println("Adj. cY = " + String(cY));
-	//Serial.println("Adj. pX = " + String(cX*240));
-	//Serial.println("Adj. pY = " + String(cY*320));
-	Serial.println("-----------------------------------");
-#endif // DEBUG		
-
-	//cX = cX * tft.width();
-	//cY = cY * tft.height();
 
 	for (int i = 0; i < sizeof(buttonTextArray) / sizeof(buttonTextArray[0]); i++)
 	{		
 		int pX = buttonArrayX[i];
 		int pY = buttonArrayY[i];
 		int bt = buttonArrayT[i];
-
+	
+	#ifdef DEBUG
+		Serial.println("-----------------------------------");
+		Serial.println("pX = " + String(i));
+		Serial.println("pX = " + String(tX));
+		Serial.println("pY = " + String(tY));
+		Serial.println("-----------------------------------");
+	#endif // DEBUG		
 		switch (bt)
 		{
 		case 1:
@@ -807,9 +745,14 @@ case 4:
 			pH = buttonHeight;
 			pW = buttonWidth;
 		}
-
+	#ifdef DEBUG
+			Serial.println("-----------------------------------");
+			Serial.println("pX = " + String(tX));
+			Serial.println("pY = " + String(tY));
+			Serial.println("-----------------------------------");
+	#endif // DEBUG		
 		//if (cX>pX && cX<pX + pW && cY > pY && cY < pY + pH)
-		if (tX>pX && tX<pX + pW && tY > pY && tY < pY + pH)
+		if (tX>pX || tX<pX + pW || tY > pY || tY < pY + pH)
 		{
 			 buttonPressed = i;
 		}
