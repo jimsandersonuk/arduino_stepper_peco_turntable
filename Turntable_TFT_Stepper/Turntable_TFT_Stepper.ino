@@ -219,8 +219,6 @@ void startup()
 {
 	tft.setCursor(5, 15);
 	tft.setTextColor(WHITE);
-	//tft.setTextSize(1);
-	//tft.setFont(&FreeSansBold9pt7b);
 	tft.setFont(&FreeSansBold9pt7b);
 	tft.setCursor(30, yCentre);
 	tft.println(F("DCC Controlled Turntable"));
@@ -229,8 +227,6 @@ void startup()
 	tft.fillScreen(BLACK);
 	MenuTabs(0);
 	drawMenuFrame();
-	//drawTurntable(radiusTurntable, GREY, 0);
-	//drawTracks(false);
 	delay(3000);
 }
 //    >>>>    FINISH    --------------------------------   SETUP    --------------------------------
