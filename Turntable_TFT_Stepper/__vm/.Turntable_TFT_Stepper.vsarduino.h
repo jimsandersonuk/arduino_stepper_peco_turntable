@@ -67,4 +67,5 @@ typedef void *__builtin_va_list;
 #undef PSTR
 #define PSTR(string_literal) ((const PROGMEM char *)(string_literal))
 #include "Turntable_TFT_Stepper.ino"
+#include "Release_v1.ino"
 #endif
