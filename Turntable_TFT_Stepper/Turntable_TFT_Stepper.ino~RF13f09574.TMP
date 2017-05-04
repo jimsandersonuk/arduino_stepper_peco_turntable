@@ -248,10 +248,7 @@ void loop()
 	{
 		translateLCD(p.x, p.y);
 		int selectedButton = touchButton(refactorX, refactorY);
-#ifdef DEBUG
-	Serial.println(selectedButton);
-#endif
-		decideButtonAction(selectedButton);
+		Serial.println(selectedButton);
 	}
 }
 
@@ -511,55 +508,10 @@ void drawMenuFrame()
 	tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
 }
 
-void decideButtonAction(int buttonPress)
+void getTrackSelection()
 {
-	if (buttonPress < 0) return;
 
-	if (buttonPress < tabs)
-	{
-		DCCMode = false;
-		maunalMode = false;
-		programmingMode = false;
-		calibrationMode = false;
 
-		switch (buttonPress)
-		{
-		case 0:
-			DCCMode = true;
-			AutoDccMenu();
-			break;
-		case 1:
-			maunalMode = true;
-			ManualMove();
-			break;
-		case 2:
-			calibrationMode = true;
-			CalibrateMenu();
-			break;
-		case 3:
-			programmingMode = true;
-			Programming();
-			break;
-		}
-	}
-	if (buttonPress >= tabs)
-	{
-		switch (menuPage)
-		{
-		case 0:
-			break;
-		case 1:
-			manualMoveTurntable(buttonPress);
-			break;
-		case 2:
-			calibrateTurntable(buttonPress);
-			break;
-		case 3:
-			programTurntable(buttonPress);
-			break;
-
-		}
-	}
 }
 
 void AutoDccMenu()
@@ -694,6 +646,61 @@ void translateLCD(int tX, int tY)
 
 //    >>>>    START     -------------------------   Button Calculations    -------------------------
 
+void decideButtonPress(int buttonPress)
+{
+	if (buttonPress < 0) return;
+
+	if (buttonPress < tabs)
+	{
+		DCCMode = false;
+		maunalMode = false;
+		programmingMode = false;
+		calibrationMode = false;
+
+		switch (buttonPress)
+		{
+		case 0:
+			DCCMode = true;
+			AutoDccMenu();
+			break;
+		case 1:
+			maunalMode = true;
+			ManualMove();
+			break;
+		case 2:
+			calibrationMode = true;
+			CalibrateMenu();
+			break;
+		case 3:
+			programmingMode = true;
+			Programming();
+			break;
+		}
+	}
+	if (buttonPress >= tabs)
+	{
+		switch (menuPage)
+		{
+		case 0:
+			break;
+		case 1:
+			manualMoveTurntable(buttonPress);
+			break;
+		case 2:
+			switch (buttonPress)
+				{
+				case 4: // calibrate position
+					break;
+				}
+			break;
+		case 3:
+			programTurntable(buttonPress);
+			break;
+
+		}
+	}
+}
+
 int touchButton(int tX, int tY)
 {
 	int pH;
@@ -736,6 +743,12 @@ int touchButton(int tX, int tY)
 			pH = buttonHeight;
 			pW = buttonWidth;
 		}
+#ifdef DEBUG
+		Serial.println("-----------------------------------");
+		Serial.println("pX = " + String(tX));
+		Serial.println("pY = " + String(tY));
+		Serial.println("-----------------------------------");
+#endif // DEBUG	
 
 		if (pX == 0 || pY == 0)
 		{
