@@ -157,6 +157,7 @@ int buttonArrayT[buttonArraySize];
 String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","Save" };
 
 const int tabs = 4;
+int currentTab = 0;
 //String menuTabText[4] = { "AutoDCC", "Manual", "Calibrate", "Program" };
 const int tabHeight = 20;
 const int tabPad = 3;
@@ -221,13 +222,13 @@ void startup()
 	tft.setTextColor(WHITE);
 	tft.setFont(&FreeSansBold9pt7b);
 	tft.setCursor(30, yCentre);
-	tft.println(F("DCC Controlled Turntable"));
+	tft.println("DCC Controlled Turntable");
 	tft.setFont();
 	delay(1000);
 	tft.fillScreen(BLACK);
 	MenuTabs(0);
 	drawMenuFrame();
-	delay(3000);
+	//delay(3000);
 }
 //    >>>>    FINISH    --------------------------------   SETUP    --------------------------------
 
@@ -245,9 +246,10 @@ void loop()
 		translateLCD(p.x, p.y);
 		int selectedButton = touchButton(refactorX, refactorY);
 #ifdef DEBUG
-	Serial.println(selectedButton);
+	Serial.println("Selected Button = " + String(selectedButton));
 #endif
-		decideButtonAction(selectedButton);
+	changeMenuTab(selectedButton);
+		//decideButtonAction(selectedButton);
 	}
 }
 
@@ -477,6 +479,7 @@ void MenuTabs(int tabSelected)
 			tabX = sidePadding;
 		else
 			tabX = lastTabX + tabWidth + tabPad;
+
 		if (tabSelected == i)
 		{
 			tft.fillRect(tabX, tabY, tabWidth, tabHeight, LIGHTGREY);
@@ -497,7 +500,25 @@ void MenuTabs(int tabSelected)
 		tft.print(buttonTextArray[i]);
 		lastTabX = tabX;
 		tft.setFont();
+		currentTab = tabSelected;
 	}
+}
+
+void changeMenuTab(int tabSelected)
+{
+
+	int ctX = buttonArrayX[currentTab];
+	int ctY =  buttonArrayY[currentTab];
+	for (int i = 0; i < tabs; i++)
+	{
+		Serial.println("Current Tab X = " + String(buttonArrayX[i]));
+		Serial.println("Current Tab Y = " + String(buttonArrayY[i]));
+
+	}
+	
+	tft.fillRect(buttonArrayX[currentTab], buttonArrayY[currentTab], tabWidth, tabHeight, ORANGE);
+	tft.fillRect(buttonArrayX[tabSelected], buttonArrayY[tabSelected], tabWidth, tabHeight, DARKGREY);
+
 }
 
 void drawMenuFrame()
@@ -513,6 +534,8 @@ void decideButtonAction(int buttonPress)
 
 	if (buttonPress < tabs)
 	{
+
+
 		DCCMode = false;
 		maunalMode = false;
 		programmingMode = false;
@@ -522,19 +545,19 @@ void decideButtonAction(int buttonPress)
 		{
 		case 0:
 			DCCMode = true;
-			AutoDccMenu();
+			//AutoDccMenu();
 			break;
 		case 1:
 			maunalMode = true;
-			ManualMove();
+			//ManualMove();
 			break;
 		case 2:
 			calibrationMode = true;
-			CalibrateMenu();
+			//CalibrateMenu();
 			break;
 		case 3:
 			programmingMode = true;
-			Programming();
+			//Programming();
 			break;
 		}
 	}
@@ -631,7 +654,7 @@ float convertStepDeg(float unit, boolean toSteps)
 {
 	float step = (float(totalSteps) / 360)*unit;
 	float deg = 90 - (unit / float(totalSteps) * 360);
-	Serial.println(deg);
+	Serial.println("Degrees = "+ String(deg));
 
 	if (toSteps == true)
 		return step;
@@ -702,13 +725,6 @@ int touchButton(int tX, int tY)
 	float cY = (((float)tY - (float)TS_MINY) / ((float)TS_MAXY - (float)TS_MINY)); // *tft.height();
 	*/
 
-#ifdef DEBUG
-	Serial.println("-----------------------------------");
-	Serial.println("tX = " + String(tX));
-	Serial.println("tY = " + String(tY));
-	Serial.println("-----------------------------------");
-#endif // DEBUG		
-
 	for (int i = 0; i < arraySize; i++)
 	{
 		int pX = buttonArrayX[i];
@@ -735,13 +751,15 @@ int touchButton(int tX, int tY)
 
 		if (pX == 0 || pY == 0)
 		{
-			i = arraySize;
+			i = arraySize+1;
+			break;
 		}
 
 		if (tX>pX && tX<pX + pW && tY > pY && tY < pY + pH)
 		{
 			buttonPressed = i;
-			i = arraySize;
+			i = arraySize+1;
+			break;
 		}
 	}
 
@@ -751,8 +769,8 @@ int touchButton(int tX, int tY)
 void createTrackButtons(int button, String buttonText, boolean isActive)
 {
 	int degPos = convertStepDeg(PositionTrackDummy[button], false);
-	int pX = readButtonArray(buttonText, 'pX');
-	int pY = readButtonArray(buttonText, 'pY');
+	int pX = readButtonArray(buttonText, 0);
+	int pY = readButtonArray(buttonText, 1);
 	int buttonColour = 0;
 
 	if (pX == 0 || pY == 0)
@@ -799,12 +817,12 @@ void writeButtonArray(String buttonText, int pX, int pY, int bt)
 
 #ifdef DEBUG
 
-	Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
+	//Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
 
 #endif // DEBUG
 }
 
-int readButtonArray(String buttonText, char returnValue)
+int readButtonArray(String buttonText, int returnValue)
 {
 	int arrayPos = -1;
 
@@ -818,13 +836,13 @@ int readButtonArray(String buttonText, char returnValue)
 
 	switch (returnValue)
 	{
-	case 'pX':
+	case 0: //px
 		return buttonArrayX[arrayPos];
 		break;
-	case 'pY':
+	case 1: //py
 		return buttonArrayY[arrayPos];
 		break;
-	case 'bt':
+	case 2: //buttonType
 		return buttonArrayT[arrayPos];
 		break;
 		/*case 'pH':
@@ -833,7 +851,7 @@ int readButtonArray(String buttonText, char returnValue)
 		case 'pW':
 		return buttonArray[arrayPos][3];
 		break;*/
-	case 'pA':
+	case 3://array position
 		return arrayPos;
 		break;
 	default:

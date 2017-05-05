@@ -9,91 +9,97 @@
       <VCCodeMacros />
     </VCCodeModel>
     <BreakPoints>
-      <BreakPoint Index="1" Name="Turntable_TFT_Stepper.ino, line 237" Id="95907079-465d-4865-bdd6-3d0fd20b1a20" Enabled="1" Message="  Millis is currently {millis()}.&#xD;&#xA;    This tutorial debug trace point prints a message every 250ms&#xD;&#xA;    The break point property called 'Continue Execution' controls if code should pause here and wait for you to click 'Continue'.&#xD;&#xA;    To stop debug, click stop debugging or close/stop the serial monitor.&#xD;&#xA;    When debug ends, serial debug will continue to break/pause the mcu or transmit trace message, wifi debug will not.&#xD;&#xA;    This breakpoint exists at the start of the loop() function, where you see a red dot.&#xD;&#xA;    The red dot is a ‘breakpoint’. Edit the properties of a breakpoint by right clicking it or open the 'Debug&gt;Other Windows&gt;Breakpoint List'&#xD;&#xA;    This breakpoint is automatically set by Visual Micro to demonstrate the Arduino debugger.&#xD;&#xA;    Add your own breakpoints by placing the cursor on any code line and pressing F9. Press F9 again to delete the breakpoint.&#xD;&#xA;    Read more about the Visual Micro debugger at http://www.visualmicro.com/page/Debugging-for-Arduino.aspx&#xD;&#xA;    Take some time to learn about debugging, it’s worth it!&#xD;&#xA;    To switch the demo breakpoint and other tips off, deselect Visual Micro&gt;Tutorial Mode.&#xD;&#xA;    Switch debugging off by changing from tool bar (Configuratin) from 'Debug' to 'Release'" MessageTextType="0" PreProcessedMessage="  Millis is currently {0}.&#xD;&#xA;    This tutorial debug trace point prints a message every 250ms&#xD;&#xA;    The break point property called 'Continue Execution' controls if code should pause here and wait for you to click 'Continue'.&#xD;&#xA;    To stop debug, click stop debugging or close/stop the serial monitor.&#xD;&#xA;    When debug ends, serial debug will continue to break/pause the mcu or transmit trace message, wifi debug will not.&#xD;&#xA;    This breakpoint exists at the start of the loop() function, where you see a red dot.&#xD;&#xA;    The red dot is a ‘breakpoint’. Edit the properties of a breakpoint by right clicking it or open the 'Debug&gt;Other Windows&gt;Breakpoint List'&#xD;&#xA;    This breakpoint is automatically set by Visual Micro to demonstrate the Arduino debugger.&#xD;&#xA;    Add your own breakpoints by placing the cursor on any code line and pressing F9. Press F9 again to delete the breakpoint.&#xD;&#xA;    Read more about the Visual Micro debugger at http://www.visualmicro.com/page/Debugging-for-Arduino.aspx&#xD;&#xA;    Take some time to learn about debugging, it’s worth it!&#xD;&#xA;    To switch the demo breakpoint and other tips off, deselect Visual Micro&gt;Tutorial Mode.&#xD;&#xA;    Switch debugging off by changing from tool bar (Configuratin) from 'Debug' to 'Release'" Condition="millis()&gt;0 || millis()&gt;1" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="237" FileColumn="1" FunctionName="" FunctionLineOffset="1" FunctionColumnOffset="1" HitCountTarget="250" HitCountType="4" Language="C++" LocationType="3" Tag="&lt;vmbp Id='95907079-465d-4865-bdd6-3d0fd20b1a20'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="0">
-        <Source>230		//drawTurntable(radiusTurntable, GREY, 0);
-231		//drawTracks(false);
-232		delay(3000);
-233	}
-234	//    &gt;&gt;&gt;&gt;    FINISH    --------------------------------   SETUP    --------------------------------
-235	
-236	//    &gt;&gt;&gt;&gt;    START     ---------------------------------   LOOP   ---------------------------------
---&gt;237	void loop()
-238	{
-239		//sleep++;
-240		//sleepTFT();
-241	
-242		digitalWrite(13, HIGH);
-243		TSPoint p = ts.getPoint();
-244	
-245		if (p.z &gt; MINPRESSURE &amp;&amp; p.z &lt; MAXPRESSURE)
-246		{
+      <BreakPoint Index="1" Name="Turntable_TFT_Stepper.ino, line 766" Id="57d2a2d8-151b-4f6a-ba6c-89794e511154" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="766" FileColumn="1" FunctionName="touchButton(int tX, int tY)" FunctionLineOffset="48" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='57d2a2d8-151b-4f6a-ba6c-89794e511154'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
+        <Source>759			{
+760				buttonPressed = i;
+761				i = arraySize+1;
+762				break;
+763			}
+764		}
+765	
+--&gt;766		return buttonPressed;
+767	}
+768	
+769	void createTrackButtons(int button, String buttonText, boolean isActive)
+770	{
+771		int degPos = convertStepDeg(PositionTrackDummy[button], false);
+772		int pX = readButtonArray(buttonText, 0);
+773		int pY = readButtonArray(buttonText, 1);
+774		int buttonColour = 0;
+775	
+</Source>
+      </BreakPoint>
+      <BreakPoint Index="2" Name="Turntable_TFT_Stepper.ino, line 539" Id="14d4c67b-a503-4c11-af73-1d8eae286439" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="539" FileColumn="1" FunctionName="decideButtonAction(int buttonPress)" FunctionLineOffset="8" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='14d4c67b-a503-4c11-af73-1d8eae286439'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
+        <Source>532	{
+533		if (buttonPress &lt; 0) return;
+534	
+535		if (buttonPress &lt; tabs)
+536		{
+537	
+538	
+--&gt;539			DCCMode = false;
+540			maunalMode = false;
+541			programmingMode = false;
+542			calibrationMode = false;
+543	
+544			switch (buttonPress)
+545			{
+546			case 0:
+547				DCCMode = true;
+548				//AutoDccMenu();
+</Source>
+      </BreakPoint>
+      <BreakPoint Index="3" Name="Turntable_TFT_Stepper.ino, line 520" Id="60512585-9404-42b7-b90e-6095aa2f9f6b" Enabled="1" Message="{buttonArrayX[tabSelected]};{buttonArrayY[tabSelected]};{tabWidth};{tabHeight};" MessageTextType="0" PreProcessedMessage="{0};{1};{2};{3};" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="520" FileColumn="1" FunctionName="changeMenuTab(int tabSelected)" FunctionLineOffset="7" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='60512585-9404-42b7-b90e-6095aa2f9f6b'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
+        <Source>513		{
+514			Serial.println("Current Tab X = " + String(buttonArrayX[i]));
+515			Serial.println("Current Tab Y = " + String(buttonArrayY[i]));
+516	
+517		}
+518		
+519		tft.fillRect(buttonArrayX[currentTab], buttonArrayY[currentTab], tabWidth, tabHeight, ORANGE);
+--&gt;520		tft.fillRect(buttonArrayX[tabSelected], buttonArrayY[tabSelected], tabWidth, tabHeight, DARKGREY);
+521	
+522	}
+523	
+524	void drawMenuFrame()
+525	{
+526		// Menu Frame
+527		tft.fillRoundRect(menuBorder, menuBorder + tabHeight, tft.width() - (menuBorder * 2), tft.height() - tabHeight - (menuBorder * 2), 3, LIGHTGREY);
+528		tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
+529	}
 </Source>
         <MessageVariables>
-          <MessageVariable Name="millis()" Index="1" />
+          <MessageVariable Name="buttonArrayX[tabSelected]" Index="1" />
+          <MessageVariable Name="buttonArrayY[tabSelected]" Index="2" />
+          <MessageVariable Name="tabWidth" Index="3" />
+          <MessageVariable Name="tabHeight" Index="4" />
         </MessageVariables>
       </BreakPoint>
-      <BreakPoint Index="2" Name="Turntable_TFT_Stepper.ino, line 249" Id="43a7af0e-c34a-4730-a3ef-f974a579788c" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="249" FileColumn="1" FunctionName="loop()" FunctionLineOffset="12" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='43a7af0e-c34a-4730-a3ef-f974a579788c'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
-        <Source>242		digitalWrite(13, HIGH);
-243		TSPoint p = ts.getPoint();
-244	
-245		if (p.z &gt; MINPRESSURE &amp;&amp; p.z &lt; MAXPRESSURE)
-246		{
-247			translateLCD(p.x, p.y);
-248			int selectedButton = touchButton(refactorX, refactorY);
---&gt;249			Serial.println(selectedButton);
-250		}
-251	}
-252	
-253	//    &gt;&gt;&gt;&gt;    FINISH    ---------------------------------   LOOP   ---------------------------------
-254	
-255	// START   -TRANSLATE lcd
-256	
-257	void translateLCD(int tX, int tY)
-258	{
-</Source>
-      </BreakPoint>
-      <BreakPoint Index="3" Name="Turntable_TFT_Stepper.ino, line 759" Id="60edcf48-e245-46c2-ad48-24c7f932ff58" Enabled="1" Message="{i}" MessageTextType="2" PreProcessedMessage="{0}" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="759" FileColumn="1" FunctionName="touchButton(int tX, int tY)" FunctionLineOffset="38" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='60edcf48-e245-46c2-ad48-24c7f932ff58'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="0">
-        <Source>752				Serial.println("pX = " + String(tX));
-753				Serial.println("pY = " + String(tY));
-754				Serial.println("-----------------------------------");
-755		#endif // DEBUG		
-756			//if (cX&gt;pX &amp;&amp; cX&lt;pX + pW &amp;&amp; cY &gt; pY &amp;&amp; cY &lt; pY + pH)
-757			if (tX&gt;pX || tX&lt;pX + pW || tY &gt; pY || tY &lt; pY + pH)
-758			{
---&gt;759				 buttonPressed = i;
-760			}
-761		}
-762	
-763		return buttonPressed;
-764	}
-765	
-766	int getDegreeCoordinates(int pX, int pY)
-767	{
-768		int deg = atan2((pX - xCentre), (pY - yCentre))*(180 / PI);
+      <BreakPoint Index="4" Name="Turntable_TFT_Stepper.ino, line 519" Id="61a84303-600a-4618-b34f-5f7f6c770edb" Enabled="1" Message="{buttonArrayX[currentTab]};{buttonArrayY[currentTab]};{tabWidth};{tabHeight};" MessageTextType="0" PreProcessedMessage="{0};{1};{2};{3};" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="519" FileColumn="1" FunctionName="changeMenuTab(int tabSelected)" FunctionLineOffset="6" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='61a84303-600a-4618-b34f-5f7f6c770edb'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
+        <Source>512		for (int i = 0; i &lt; tabs; i++)
+513		{
+514			Serial.println("Current Tab X = " + String(buttonArrayX[i]));
+515			Serial.println("Current Tab Y = " + String(buttonArrayY[i]));
+516	
+517		}
+518		
+--&gt;519		tft.fillRect(buttonArrayX[currentTab], buttonArrayY[currentTab], tabWidth, tabHeight, ORANGE);
+520		tft.fillRect(buttonArrayX[tabSelected], buttonArrayY[tabSelected], tabWidth, tabHeight, DARKGREY);
+521	
+522	}
+523	
+524	void drawMenuFrame()
+525	{
+526		// Menu Frame
+527		tft.fillRoundRect(menuBorder, menuBorder + tabHeight, tft.width() - (menuBorder * 2), tft.height() - tabHeight - (menuBorder * 2), 3, LIGHTGREY);
+528		tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
 </Source>
         <MessageVariables>
-          <MessageVariable Name="i" Index="1" />
+          <MessageVariable Name="buttonArrayX[currentTab]" Index="1" />
+          <MessageVariable Name="buttonArrayY[currentTab]" Index="2" />
+          <MessageVariable Name="tabWidth" Index="3" />
+          <MessageVariable Name="tabHeight" Index="4" />
         </MessageVariables>
-      </BreakPoint>
-      <BreakPoint Index="4" Name="Turntable_TFT_Stepper.ino, line 757" Id="4a367c01-4c35-45d8-a7a3-93f30a503921" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\jimsa\onedrive\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="757" FileColumn="1" FunctionName="touchButton(int tX, int tY)" FunctionLineOffset="36" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='4a367c01-4c35-45d8-a7a3-93f30a503921'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
-        <Source>750		#ifdef DEBUG
-751				Serial.println("-----------------------------------");
-752				Serial.println("pX = " + String(tX));
-753				Serial.println("pY = " + String(tY));
-754				Serial.println("-----------------------------------");
-755		#endif // DEBUG		
-756			//if (cX&gt;pX &amp;&amp; cX&lt;pX + pW &amp;&amp; cY &gt; pY &amp;&amp; cY &lt; pY + pH)
---&gt;757			if (tX&gt;pX || tX&lt;pX + pW || tY &gt; pY || tY &lt; pY + pH)
-758			{
-759				 buttonPressed = i;
-760			}
-761		}
-762	
-763		return buttonPressed;
-764	}
-765	
-766	int getDegreeCoordinates(int pX, int pY)
-</Source>
       </BreakPoint>
     </BreakPoints>
   </Program>
