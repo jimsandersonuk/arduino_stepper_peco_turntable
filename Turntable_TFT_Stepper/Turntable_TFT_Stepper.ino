@@ -43,8 +43,8 @@ Author:  jimsanderson
 #define MINPRESSURE 50
 #define MAXPRESSURE 1000
 
-//	#define LCD_CS A3
-//	#define LCD_CD A2
+#define LCD_CS A3
+#define LCD_CD A2
 #define LCD_WR A1
 #define LCD_RD A0
 // optional
@@ -64,7 +64,8 @@ Author:  jimsanderson
 #define GREY		0x8410
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
-Adafruit_TFTLCD tft(YP, XM, LCD_WR, LCD_RD, LCD_RESET);
+
+Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 int screenRotation = LCDROTATION;
 
 //    >>>>    FINISH    ------------------------------   TFT Setup    ------------------------------
@@ -158,12 +159,12 @@ String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "P
 
 const int tabs = 4;
 int currentTab = 0;
-//String menuTabText[4] = { "AutoDCC", "Manual", "Calibrate", "Program" };
+int tabWidth = 0;
 const int tabHeight = 20;
 const int tabPad = 3;
 const int sidePadding = 14;
 const int menuBorder = 6;
-int tabWidth;
+
 
 const int lengthTrack = 30;
 const int buttonHeight = 30;
@@ -213,11 +214,7 @@ void setup()
 	tft.fillScreen(BLACK);
 
 	pinMode(13, OUTPUT);
-	startup();
-}
 
-void startup()
-{
 	tft.setCursor(5, 15);
 	tft.setTextColor(WHITE);
 	tft.setFont(&FreeSansBold9pt7b);
@@ -240,6 +237,13 @@ void loop()
 
 	digitalWrite(13, HIGH);
 	TSPoint p = ts.getPoint();
+	digitalWrite(13, LOW);
+
+	// if sharing pins, you'll need to fix the directions of the touchscreen pins
+	//pinMode(XP, OUTPUT);
+	pinMode(XM, OUTPUT);
+	pinMode(YP, OUTPUT);
+	//pinMode(YM, OUTPUT);
 
 	if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
 	{
@@ -248,7 +252,10 @@ void loop()
 #ifdef DEBUG
 	Serial.println("Selected Button = " + String(selectedButton));
 #endif
-	changeMenuTab(selectedButton);
+
+	//tft.fillScreen(BLACK);
+	MenuTabs(selectedButton);
+		//drawAll(0, false);
 		//decideButtonAction(selectedButton);
 	}
 }
@@ -496,29 +503,12 @@ void MenuTabs(int tabSelected)
 		//}
 
 		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);		
-		tft.setCursor(tabX + 2, tabY + 3);
+		tft.setCursor(tabX + 8, tabY + 6);
 		tft.print(buttonTextArray[i]);
 		lastTabX = tabX;
 		tft.setFont();
 		currentTab = tabSelected;
 	}
-}
-
-void changeMenuTab(int tabSelected)
-{
-
-	int ctX = buttonArrayX[currentTab];
-	int ctY =  buttonArrayY[currentTab];
-	for (int i = 0; i < tabs; i++)
-	{
-		Serial.println("Current Tab X = " + String(buttonArrayX[i]));
-		Serial.println("Current Tab Y = " + String(buttonArrayY[i]));
-
-	}
-	
-	tft.fillRect(buttonArrayX[currentTab], buttonArrayY[currentTab], tabWidth, tabHeight, ORANGE);
-	tft.fillRect(buttonArrayX[tabSelected], buttonArrayY[tabSelected], tabWidth, tabHeight, DARKGREY);
-
 }
 
 void drawMenuFrame()
