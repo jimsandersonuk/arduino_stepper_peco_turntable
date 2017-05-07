@@ -135,9 +135,8 @@ const int  totalSteps = 200 * 16;		//number of steps for a full rotation
 //    >>>>    FINISH    --------------------   Parameters for turntable move    --------------------
 
 //    >>>>    START     -------------------------------   TFT Menu   -------------------------------
-int radiusTurntable = 75;
-int xCentre = tft.height() / 2;
-int yCentre = (tft.width() / 2);
+int radiusTurntable = 65;
+
 int turntableOffset = 25;
 
 int refactorX = 0 ;
@@ -165,6 +164,8 @@ const int tabPad = 3;
 const int sidePadding = 14;
 const int menuBorder = 6;
 
+int xCentre = tft.height() / 2;
+int yCentre = (((tft.width() + (menuBorder + tabPad) * 2)) / 2);
 
 const int lengthTrack = 30;
 const int buttonHeight = 30;
@@ -202,7 +203,7 @@ void setup()
 
 #ifdef DEBUG
 	Serial.begin(115200);
-	Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
+	//Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
 #endif
 
 	//pixelFactorQuadrants();	// work out screen rotation and then apply ratation factoring to TouchScreen results
@@ -249,14 +250,14 @@ void loop()
 	{
 		translateLCD(p.x, p.y);
 		int selectedButton = touchButton(refactorX, refactorY);
-#ifdef DEBUG
-	Serial.println("Selected Button = " + String(selectedButton));
-#endif
+//#ifdef DEBUG
+//	Serial.println("Selected Button = " + String(selectedButton));
+//#endif
 
 	//tft.fillScreen(BLACK);
 	MenuTabs(selectedButton);
-		//drawAll(0, false);
-		//decideButtonAction(selectedButton);
+	//drawAll(0, false);
+	decideButtonAction(selectedButton);
 	}
 }
 
@@ -386,8 +387,9 @@ void autoDCCMode()
 
 void drawAll( int turntableOffset, boolean calibrationMode)
 {
+	tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
 	drawTurntable( radiusTurntable, GREY,turntableOffset);
-	drawTurntableBridge(270, false);
+	drawTurntableBridge(0, true);
 	drawTracks(calibrationMode);
 }
 
@@ -395,7 +397,6 @@ void drawTurntable(int radius, int colour, int turnOffset)
 {
 	tft.fillCircle(xCentre, yCentre + turnOffset, radius, colour);
 	tft.fillCircle(xCentre, yCentre + turnOffset, radius - 4, BLACK);
-	drawTracks(true);
 }
 
 void drawTurntableBridge(int angle, boolean show)
@@ -468,6 +469,7 @@ void drawTracks(boolean isTrackCalibration)
 	}
 }
 
+
 //    >>>>    FINISH    ---------------------------   Draw Turntable     ---------------------------
 
 //    >>>>    START     ----------------------------   Menu Functions   ----------------------------	
@@ -498,11 +500,7 @@ void MenuTabs(int tabSelected)
 			//tft.setFont(&Roboto5pt7b);
 		}
 
-		//if (buttonTextArray[i].length > tabWidth - 2)
-		//{
-		//}
-
-		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);		
+		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);
 		tft.setCursor(tabX + 8, tabY + 6);
 		tft.print(buttonTextArray[i]);
 		lastTabX = tabX;
@@ -512,8 +510,7 @@ void MenuTabs(int tabSelected)
 }
 
 void drawMenuFrame()
-{
-	// Menu Frame
+{	// Menu Frame
 	tft.fillRoundRect(menuBorder, menuBorder + tabHeight, tft.width() - (menuBorder * 2), tft.height() - tabHeight - (menuBorder * 2), 3, LIGHTGREY);
 	tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
 }
@@ -524,8 +521,6 @@ void decideButtonAction(int buttonPress)
 
 	if (buttonPress < tabs)
 	{
-
-
 		DCCMode = false;
 		maunalMode = false;
 		programmingMode = false;
@@ -535,19 +530,19 @@ void decideButtonAction(int buttonPress)
 		{
 		case 0:
 			DCCMode = true;
-			//AutoDccMenu();
+			AutoDccMenu();
 			break;
 		case 1:
 			maunalMode = true;
-			//ManualMove();
+			ManualMove();
 			break;
 		case 2:
 			calibrationMode = true;
-			//CalibrateMenu();
+			CalibrateMenu();
 			break;
 		case 3:
 			programmingMode = true;
-			//Programming();
+			Programming();
 			break;
 		}
 	}
@@ -584,6 +579,7 @@ void ManualMove()
 	menuPage = 1;
 	MenuTabs(menuPage);
 	drawAll(0, false);
+
 }
 
 void CalibrateMenu()
@@ -637,14 +633,14 @@ int findX(int cX, int circleRad, int angle)
 
 int findY(int cY, int circleRad, int angle)
 {
-	return cY + circleRad * cos(angle * PI / 180);
+	return cY + circleRad * sin(angle * PI / 180);
 }
 
 float convertStepDeg(float unit, boolean toSteps)
 {
 	float step = (float(totalSteps) / 360)*unit;
 	float deg = 90 - (unit / float(totalSteps) * 360);
-	Serial.println("Degrees = "+ String(deg));
+	//Serial.println("Degrees = "+ String(deg));
 
 	if (toSteps == true)
 		return step;
@@ -720,14 +716,14 @@ int touchButton(int tX, int tY)
 		int pX = buttonArrayX[i];
 		int pY = buttonArrayY[i];
 		int bt = buttonArrayT[i];
-
-#ifdef DEBUG
-		Serial.println("-----------------------------------");
-		Serial.println("pX = " + String(i));
-		Serial.println("pX = " + String(tX));
-		Serial.println("pY = " + String(tY));
-		Serial.println("-----------------------------------");
-#endif // DEBUG		
+//
+//#ifdef DEBUG
+//		Serial.println("-----------------------------------");
+//		Serial.println("pX = " + String(i));
+//		Serial.println("pX = " + String(tX));
+//		Serial.println("pY = " + String(tY));
+//		Serial.println("-----------------------------------");
+//#endif // DEBUG		
 		switch (bt)
 		{
 		case 1:
@@ -865,22 +861,25 @@ void autoDCCTurntable()
 
 void manualMoveTurntable(int buttonPress)
 {
-	switch (buttonPress)
-	{
-	case 5: // track 1	
-		break;
-	case 6: // track 2	
-		break;
-	case 7: // track 3	
-		break;
-	case 8:	// track 4
-		break;
-	case 9: // track 5	
-		break;
-	case 10: // track 6	
-		break;
-	}
+	//do {
+	//	switch (buttonPress)
+	//	{
+	//	case 5: // track 1	
+	//		break;
+	//	case 6: // track 2	
+	//		break;
+	//	case 7: // track 3	
+	//		break;
+	//	case 8:	// track 4
+	//		break;
+	//	case 9: // track 5	
+	//		break;
+	//	case 10: // track 6	
+	//		break;
+	//	}
+	//} while (menuPage = 1);
 }
+
 
 //    <<<<    FINISH    ----------------------    Manually Move Turntable     ----------------------
 

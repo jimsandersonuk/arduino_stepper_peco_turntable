@@ -23,7 +23,7 @@
 256		//tft.fillScreen(BLACK);
 257		MenuTabs(selectedButton);
 --&gt;258			//drawAll(0, false);
-259			//decideButtonAction(selectedButton);
+259			decideButtonAction(selectedButton);
 260		}
 261	}
 262	
@@ -32,6 +32,46 @@
 265	//    &gt;&gt;&gt;&gt;    START     --------------------------    EEPROM Commands     --------------------------
 266	
 267	void EEPROMWritelong(int address, int value)
+</Source>
+      </BreakPoint>
+      <BreakPoint Index="3" Name="Turntable_TFT_Stepper.ino, line 576" Id="6b1c6737-1af3-437f-b1b8-bc6cc33f7263" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\workshop_general\arduino\git\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="576" FileColumn="1" FunctionName="AutoDccMenu()" FunctionLineOffset="5" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='6b1c6737-1af3-437f-b1b8-bc6cc33f7263'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
+        <Source>569	}
+570	
+571	void AutoDccMenu()
+572	{
+573		menuPage = 0;
+574		MenuTabs(menuPage);
+575		drawAll(0, false);
+--&gt;576		autoDCCTurntable();
+577	}
+578	
+579	void ManualMove()
+580	{
+581		menuPage = 1;
+582		MenuTabs(menuPage);
+583		drawAll(0, false);
+584	}
+585	
+</Source>
+      </BreakPoint>
+      <BreakPoint Index="4" Name="Turntable_TFT_Stepper.ino, line 536" Id="7fb0e06f-a613-4d23-bc8e-cfc7afade5e6" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\workshop_general\arduino\git\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="536" FileColumn="1" FunctionName="decideButtonAction(int buttonPress)" FunctionLineOffset="18" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='7fb0e06f-a613-4d23-bc8e-cfc7afade5e6'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
+        <Source>529			calibrationMode = false;
+530	
+531			switch (buttonPress)
+532			{
+533			case 0:
+534				DCCMode = true;
+535				AutoDccMenu();
+--&gt;536				break;
+537			case 1:
+538				maunalMode = true;
+539				ManualMove();
+540				break;
+541			case 2:
+542				calibrationMode = true;
+543				CalibrateMenu();
+544				break;
+545			case 3:
 </Source>
       </BreakPoint>
     </BreakPoints>
