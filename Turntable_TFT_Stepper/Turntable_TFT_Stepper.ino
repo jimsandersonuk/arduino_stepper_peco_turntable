@@ -5,6 +5,7 @@ Author:  jimsanderson
 */
 
 #define DEBUG
+#define TESTING
 
 #ifdef DEBUG
 #include <SoftwareSerial.h>
@@ -43,8 +44,8 @@ Author:  jimsanderson
 #define MINPRESSURE 50
 #define MAXPRESSURE 1000
 
-#define LCD_CS A3
-#define LCD_CD A2
+//	#define LCD_CS A3
+//	#define LCD_CD A2
 #define LCD_WR A1
 #define LCD_RD A0
 // optional
@@ -54,7 +55,6 @@ Author:  jimsanderson
 #define BLACK       0x0000      /*   0,   0,   0 */
 #define LIGHTGREY   0xC618      /* 192, 192, 192 */
 #define DARKGREY    0x7BEF      /* 128, 128, 128 */
-#define BLUE        0x001F      /*   0,   0, 255 */
 #define GREEN       0x07E0      /*   0, 255,   0 */
 #define RED         0xF800      /* 255,   0,   0 */
 #define YELLOW      0xFFE0      /* 255, 255,   0 */
@@ -64,11 +64,83 @@ Author:  jimsanderson
 #define GREY		0x8410
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
-
-Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
-int screenRotation = LCDROTATION;
+Adafruit_TFTLCD tft(YP, XM, LCD_WR, LCD_RD, LCD_RESET);
 
 //    >>>>    FINISH    ------------------------------   TFT Setup    ------------------------------
+
+//Define Corresponding Head and Tail
+
+const int GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 }; // Array for Tail Tracks
+
+#ifdef DEBUG 
+int PositionTrack[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 }; //{ 0, 0, 0, 0, 0, 0, 0 };   // Save EEPROM addresses to array - index 0 = calibration position
+#elif
+int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };
+#endif // DEBUG 
+
+int selectedTracks[2] = { 0, 0 };
+
+//  Calibration Array
+int sensorVal = digitalRead(3);         // enable Hall-effect Sensor on Pin 3
+int arrayCalibrate[5] = { 0, 0, 0, 0, 0 };   // Array to pass in calibration run results
+
+// Programme Track Positions
+int currentStepPosition = 0;  // current step number
+int storeProgTracks[6] = { 0, 0, 0, 0, 0, 0 };
+boolean chkOverwrite = false;
+		// isReleased tries to make sure the motor is not continuously released
+
+//    >>>>    FINISH    ------------------------   Track Step Definitions   ------------------------
+
+//    >>>>    START     --------------------   Parameters for turntable move    --------------------
+
+boolean newTargetLocation = false;
+boolean inMotion = false;
+boolean isTurntableHead = true;
+boolean isTurntableHeadChanged = true;
+boolean isReleased = false;
+boolean displayRotatingCW = false;
+int currentFunction = 0; // "AutoDCC", "Manual", "Calibrate", "Program"
+const int displayRotateDelay = 5;   // This is the minimum delay in ms between steps of the stepper motor
+boolean displayRotating = false;    // Is the "Display Rotate" function enabled?
+
+long stepperLastMoveTime = 0;
+
+int mainDiff = 0;
+int distanceToGo = 0;
+
+const int MOTOR_OVERSHOOT = 10;			// the amount of overshoot/ lash correction when approaching from CCW
+int overshootDestination = -1;
+const int releaseTimeout_ms = 2000;		//reduced to 2 seconds for now
+const int  totalSteps = 200 * 16;		//number of steps for a full rotation
+
+//    >>>>    FINISH    --------------------   Parameters for turntable move    --------------------
+
+//    >>>>    START     -------------------------------   TFT Menu   -------------------------------
+
+int xCentre = tft.height() / 2;
+int yCentre = (tft.width() / 2);
+int turnTablePos = yCentre;
+
+int menuPage = 0;
+
+const int turntableParameters [3] = {60, 25, 25};	//radiusTurntable, turntableOffset, lengthTrack
+
+int refactorX = 0 ;
+int refactorY = 0 ;
+
+const int buttonArraySize = 17;
+int buttonArrayX[buttonArraySize] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int buttonArrayY[buttonArraySize] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+int buttonArrayT[buttonArraySize] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","Save" };
+
+const int tabParameters [5] = {4, 20, 3, 14, 6}; //tabs,tabHeight,tabPad,sidePadding,menuBorder
+int tabWidth;
+
+const int buttonParameters [5] = {30, 30, 4, GREENYELLOW, ORANGE}; //buttonHeight, buttonWidth, radiusButCorner, butColour, butActiveColour
+//    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
+
 
 //    >>>>    START     --------------------------   Define DCC Control   --------------------------
 
@@ -78,103 +150,6 @@ DCCAccessoryAddress;  // Address to respond to
 DCCAccessoryAddress gAddresses[7]; // Allows 7 DCC addresses: [XX] = number of addresses you need (including 0).
 
 //    >>>>    FINISH    --------------------------   Define DCC Control   --------------------------
-
-//    >>>>    START     ------------------------   Track Step Definitions   ------------------------
-
-//Define Corresponding Head and Tail   UNO
-
-const int GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 }; // Array for Tail Tracks
-int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };   // Save EEPROM addresses to array - index 0 = calibration position
-int PositionTrackDummy[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 };
-//int storeTargetTrack = 0;             // Store Target Track position
-//int storeStartTrack = 0;
-int selectedTracks[2] = { 0,0 };
-
-//  Calibration Array
-int sensorVal = digitalRead(3);         // enable Hall-effect Sensor on Pin 3
-int arrayCalibrate[] = { 0, 0, 0, 0, 0 };   // Array to pass in calibration run results
-boolean isTrackCalibration = false;
-
-// Programme Track Positions
-int currentStepPosition = 0;  // current step number
-int storeProgTracks[] = { 0, 0, 0, 0, 0, 0 };
-boolean chkOverwrite = false;
-
-// Debug Variables
-boolean isDebugMode = false;			// Set debug to console default is off
-										// Parameters for Stepper
-boolean isReleased = false;				// isReleased tries to make sure the motor is not continuously released
-
-//    >>>>    FINISH    ------------------------   Track Step Definitions   ------------------------
-
-//    >>>>    START     --------------------   Parameters for turntable move    --------------------
-boolean DCCMode = false;
-boolean maunalMode = false;
-boolean programmingMode = false;
-boolean calibrationMode = false;
-boolean tableTargetHead = false;
-int tableTargetTrack = 0;
-int tableTargetPosition = 0;
-boolean newTargetLocation = false;
-boolean inMotionToNewTarget = false;
-boolean isTurntableHead = true;
-boolean isTurntableHeadChanged = true;
-int currentTrack = 1;
-int newTrack = 1;
-int distanceToGo = 0;
-const int displayRotateDelay = 5;   // This is the minimum delay in ms between steps of the stepper motor
-boolean displayRotating = false;    // Is the "Display Rotate" function enabled?
-boolean displayRotatingCW = true;   // In Display Rotate mode, are we rot
-long stepperLastMoveTime = 0;
-int mainDiff = 0;
-const int MOTOR_OVERSHOOT = 10;			// the amount of overshoot/ lash correction when approaching from CCW
-int overshootDestination = -1;
-const int releaseTimeout_ms = 2000;		//reduced to 2 seconds for now
-const int  totalSteps = 200 * 16;		//number of steps for a full rotation
-
-//    >>>>    FINISH    --------------------   Parameters for turntable move    --------------------
-
-//    >>>>    START     -------------------------------   TFT Menu   -------------------------------
-int radiusTurntable = 65;
-
-int turntableOffset = 25;
-
-int refactorX = 0 ;
-int refactorY = 0 ;
-
-int sleep = 0; // sleep counter
-boolean asleep = false;
-boolean pause = true;
-const int sleepTimer = 60000; // sleep after 30 secs
-const int startAngle = abs(360 / screenRotation);
-
-int menuPage = 0;
-
-const int buttonArraySize = 17;
-int buttonArrayX[buttonArraySize];
-int buttonArrayY[buttonArraySize];
-int buttonArrayT[buttonArraySize];
-String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","Save" };
-
-const int tabs = 4;
-int currentTab = 0;
-int tabWidth = 0;
-const int tabHeight = 20;
-const int tabPad = 3;
-const int sidePadding = 14;
-const int menuBorder = 6;
-
-int xCentre = tft.height() / 2;
-int yCentre = (((tft.width() + (menuBorder + tabPad) * 2)) / 2);
-
-const int lengthTrack = 30;
-const int buttonHeight = 30;
-const int buttonWidth = 30;
-const int radiusButCorner = 4;
-const int butColour = GREENYELLOW;
-const int butActiveColour = ORANGE;
-
-//    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
 
 //    >>>>    START     ----------------------   Adafruit MotorShield Setup   ----------------------
 
@@ -206,27 +181,25 @@ void setup()
 	//Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
 #endif
 
-	//pixelFactorQuadrants();	// work out screen rotation and then apply ratation factoring to TouchScreen results
 	initialiseDCC();	//Start up DCC reading
 	tft.reset();
 	tft.begin(0x9325);
 
-	tft.setRotation(screenRotation);
+	tft.setRotation(LCDROTATION);
 	tft.fillScreen(BLACK);
 
 	pinMode(13, OUTPUT);
+	startup();
+}
 
-	tft.setCursor(5, 15);
-	tft.setTextColor(WHITE);
-	tft.setFont(&FreeSansBold9pt7b);
-	tft.setCursor(30, yCentre);
-	tft.println("DCC Controlled Turntable");
-	tft.setFont();
+void startup()
+{
+
 	delay(1000);
 	tft.fillScreen(BLACK);
 	MenuTabs(0);
 	drawMenuFrame();
-	//delay(3000);
+	delay(3000);
 }
 //    >>>>    FINISH    --------------------------------   SETUP    --------------------------------
 
@@ -238,26 +211,15 @@ void loop()
 
 	digitalWrite(13, HIGH);
 	TSPoint p = ts.getPoint();
-	digitalWrite(13, LOW);
-
-	// if sharing pins, you'll need to fix the directions of the touchscreen pins
-	//pinMode(XP, OUTPUT);
-	pinMode(XM, OUTPUT);
-	pinMode(YP, OUTPUT);
-	//pinMode(YM, OUTPUT);
 
 	if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
 	{
 		translateLCD(p.x, p.y);
 		int selectedButton = touchButton(refactorX, refactorY);
-//#ifdef DEBUG
-//	Serial.println("Selected Button = " + String(selectedButton));
-//#endif
-
-	//tft.fillScreen(BLACK);
-	MenuTabs(selectedButton);
-	//drawAll(0, false);
-	decideButtonAction(selectedButton);
+#ifdef DEBUG
+	Serial.println(selectedButton);
+#endif
+		decideButtonAction(selectedButton);
 	}
 }
 
@@ -267,7 +229,7 @@ void loop()
 
 void EEPROMWritelong(int address, int value)
 {
-	if (isTrackCalibration)
+	if (currentFunction == 2)
 		address = 0;
 	else
 		address = address * 2;
@@ -281,7 +243,7 @@ void EEPROMWritelong(int address, int value)
 
 void arrayWritelong(int address, int value)
 {
-	if (isTrackCalibration) {
+	if (currentFunction == 2) {
 		address = 0;
 	}
 	int val1 = value / 100;
@@ -292,7 +254,7 @@ void arrayWritelong(int address, int value)
 
 int EEPROMReadlong(int address)
 {
-	if (isTrackCalibration)
+	if (currentFunction == 2)
 		address = 0;
 	else
 		address = address * 2;
@@ -362,9 +324,8 @@ void BasicAccDecoderPacket_Handler(int address, boolean activate, byte data)	// 
 	{
 		if (address == gAddresses[i].address)
 		{
-			tableTargetHead = enable;
-			tableTargetPosition = i;
-			//New packet and we have a new target location, set the flag
+			isTurntableHead = enable;			
+			selectedTracks[1] = PositionTrack[i];
 			newTargetLocation = true;
 			doStepperMove();
 		}
@@ -385,63 +346,57 @@ void autoDCCMode()
 
 //    >>>>    START     ---------------------------   Draw Turntable     ---------------------------
 
-void drawAll( int turntableOffset, boolean calibrationMode)
-{
-	tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
-	drawTurntable( radiusTurntable, GREY,turntableOffset);
-	drawTurntableBridge(0, true);
-	drawTracks(calibrationMode);
-}
 
-void drawTurntable(int radius, int colour, int turnOffset)
+void drawAll(boolean calibrationMode)
 {
-	tft.fillCircle(xCentre, yCentre + turnOffset, radius, colour);
-	tft.fillCircle(xCentre, yCentre + turnOffset, radius - 4, BLACK);
+	tft.fillCircle(xCentre, turnTablePos, turntableParameters [0], GREY);
+	tft.fillCircle(xCentre, turnTablePos, turntableParameters [0] - 4, BLACK);
+	drawTurntableBridge((360 * (LCDROTATION/4)), false);
+	drawTracks(calibrationMode);
+	drawTracks(true);
 }
 
 void drawTurntableBridge(int angle, boolean show)
 {
-	int adjAngle = angle - (360 - startAngle);
-	int top1, top2, bot1, bot2;
-	int radiusBridge = radiusTurntable - 7;
+	int adjAngle = angle - (360 * (LCDROTATION / 4));
 	int dispCol = GREY;	int dispCol1 = GREEN;	int dispCol2 = RED;
-
+	
 	if (show != true)
 	{
 		dispCol = BLACK; dispCol1 = BLACK; 	dispCol2 = BLACK;
 	}
 
-	if (adjAngle > startAngle || adjAngle < 360 - startAngle) adjAngle = startAngle;
+	if (adjAngle > (360 * (LCDROTATION / 4)) || adjAngle < 360 - (360 * (LCDROTATION / 4))) adjAngle = (360 * (LCDROTATION / 4));
 
-	top1 = ((360 - 3) + adjAngle);
-	top2 = ((3 + adjAngle) + 180);
-	bot1 = (3 + adjAngle);
-	bot2 = (((360 - 3) + adjAngle) - 180);
+	int top1 = ((360 - 3) + adjAngle);
+	int top2 = ((3 + adjAngle) + 180);
+	int bot1 = (3 + adjAngle);
+	int bot2 = (((360 - 3) + adjAngle) - 180);
 
-	drawTrackLine(top1, top2, radiusBridge, radiusBridge, 0, dispCol);
-	drawTrackLine(top1, top2, radiusBridge, radiusBridge, 1, dispCol);
-	drawTrackLine(bot1, bot2, radiusBridge, radiusBridge, 0, dispCol);
-	drawTrackLine(bot1, bot2, radiusBridge, radiusBridge, 1, dispCol);
-	drawTrackLine(top1, bot1, radiusBridge, radiusBridge, 0, dispCol);
-	drawTrackLine(top2, bot2, radiusBridge, radiusBridge, 0, dispCol);
+	drawTrackLine(top1, top2, turntableParameters [0] - 7, turntableParameters [0] - 7, 0, dispCol);
+	drawTrackLine(top1, top2, turntableParameters [0] - 7, turntableParameters [0] - 7, 1, dispCol);
+	drawTrackLine(bot1, bot2, turntableParameters [0] - 7, turntableParameters [0] - 7, 0, dispCol);
+	drawTrackLine(bot1, bot2, turntableParameters [0] - 7, turntableParameters [0] - 7, 1, dispCol);
+	drawTrackLine(top1, bot1, turntableParameters [0] - 7, turntableParameters [0] - 7, 0, dispCol);
+	drawTrackLine(top2, bot2, turntableParameters [0] - 7, turntableParameters [0] - 7, 0, dispCol);
 
-	drawMarker((360 + adjAngle), radiusBridge - 4, 2, dispCol1);
-	drawMarker((360 + adjAngle) - 180, radiusBridge - 4, 2, dispCol2);
+	drawMarker((360 + adjAngle), turntableParameters [0] - 7 - 4, 2, dispCol1);
+	drawMarker((360 + adjAngle) - 180, turntableParameters [0] - 7 - 4, 2, dispCol2);
 }
 
 void drawTrackLine(int p1, int p2, int radius1, int radius2, int offset, int colour)
 {
 	int aX = findX(xCentre, radius1, p1);
-	int aY = findY(yCentre + turntableOffset, radius1, p1);
+	int aY = findY(turnTablePos, radius1, p1);
 	int bX = findX(xCentre, radius2, p2);
-	int bY = findY(yCentre + turntableOffset, radius2, p2);
+	int bY = findY(turnTablePos, radius2, p2);
 	tft.drawLine(aX, aY + offset, bX, bY + offset, colour);
 }
 
 void drawMarker(int p1, int radius1, int size, int colour)
 {
 	int aX = findX(xCentre, radius1, p1);
-	int aY = findY(yCentre + turntableOffset, radius1, p1);
+	int aY = findY(turnTablePos, radius1, p1);
 	tft.fillCircle(aX, aY, size, colour);
 }
 
@@ -452,150 +407,108 @@ void drawTracks(boolean isTrackCalibration)
 
 	String buttonText = String(i);
 
-	if (isTrackCalibration == true)
+	if (currentFunction = 2)
 	{
 		i = 0;
-		buttonText = "C";
 	}
+	int trackArray = sizeof(PositionTrack) / sizeof(PositionTrack[0]);
 
-	for (i; i < sizeof(PositionTrackDummy) / sizeof(PositionTrackDummy[0]); i++)
+	for (i; i < trackArray ; i++)
 	{
-		int angle = convertStepDeg(PositionTrackDummy[i], false);
+		int angle = convertStepDeg(PositionTrack[i], false);
 
 		int p1 = (360 - angle);
-		drawTrackLine(p1, p1, radiusTurntable, radiusTurntable + lengthTrack, -offset, GREY);
-		drawTrackLine(p1, p1, radiusTurntable, radiusTurntable + lengthTrack, +offset, GREY);
+		drawTrackLine(p1, p1, turntableParameters [0], turntableParameters [0] + turntableParameters [2], -offset, GREY);
+		drawTrackLine(p1, p1, turntableParameters [0], turntableParameters [0] + turntableParameters [2], +offset, GREY);
 		createTrackButtons(i, buttonText, false);
 	}
 }
-
 
 //    >>>>    FINISH    ---------------------------   Draw Turntable     ---------------------------
 
 //    >>>>    START     ----------------------------   Menu Functions   ----------------------------	
 void MenuTabs(int tabSelected)
 {
+//const int tabParameters [5] = {4, 20, 3, 14, 6}; //tabs,tabHeight,tabPad,sidePadding,menuBorder
+
 	int tabX;
-	int tabY = menuBorder;
+	int tabY =  tabParameters[4];
 
 	int lastTabX = 0;
-	tabWidth = (tft.width() - ((sidePadding * 2) + (tabPad * (tabs - 1)))) / tabs;
+	tabWidth = (tft.width() - ((tabParameters[3] * 2) + (tabParameters[2] * (tabParameters[0] - 1)))) / tabParameters[0];
 	tft.setTextColor(BLACK);
 
-	for (int i = 0; i < tabs; i++)
+	for (int i = 0; i < tabParameters[0]; i++)
 	{
 		if (i == 0)
-			tabX = sidePadding;
+			tabX = tabParameters[4];
 		else
-			tabX = lastTabX + tabWidth + tabPad;
-
+			tabX = lastTabX + tabWidth + tabParameters[2];
 		if (tabSelected == i)
 		{
-			tft.fillRect(tabX, tabY, tabWidth, tabHeight, LIGHTGREY);
+			tft.fillRect(tabX, tabY, tabWidth, tabParameters[3], LIGHTGREY);
 			//tft.setFont(&RobotoBold5pt7b);
 		}
 		else
 		{
-			tft.fillRect(tabX, tabY, tabWidth, tabHeight, DARKGREY);
+			tft.fillRect(tabX, tabY, tabWidth,  tabParameters[3], DARKGREY);
 			//tft.setFont(&Roboto5pt7b);
-		}
+	}
 
-		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);
-		tft.setCursor(tabX + 8, tabY + 6);
+		writeButtonArray(buttonTextArray[i], tabX, tabY, 1);		
+		tft.setCursor(tabX + 2, tabY + 3);
 		tft.print(buttonTextArray[i]);
 		lastTabX = tabX;
 		tft.setFont();
-		currentTab = tabSelected;
 	}
 }
 
 void drawMenuFrame()
-{	// Menu Frame
-	tft.fillRoundRect(menuBorder, menuBorder + tabHeight, tft.width() - (menuBorder * 2), tft.height() - tabHeight - (menuBorder * 2), 3, LIGHTGREY);
-	tft.fillRoundRect(menuBorder + tabPad, menuBorder + tabHeight + tabPad, tft.width() - ((menuBorder + tabPad) * 2), tft.height() - tabHeight - ((menuBorder + tabPad) * 2), 3, BLACK);
+{
+	tft.fillRoundRect(tabParameters[4], tabParameters[4] + tabParameters[1], tft.width() - (tabParameters[4] * 2), tft.height() - tabParameters[1] - (tabParameters[4] * 2), 3, LIGHTGREY);
+	tft.fillRoundRect(tabParameters[4] + tabParameters[2], tabParameters[4] + tabParameters[1] + tabParameters[2], tft.width() - ((tabParameters[4] + tabParameters[2]) * 2), tft.height() - tabParameters[1] - ((tabParameters[4] + tabParameters[2]) * 2), 3, BLACK);
 }
+
 
 void decideButtonAction(int buttonPress)
 {
 	if (buttonPress < 0) return;
 
-	if (buttonPress < tabs)
+	if (buttonPress < tabParameters[0])
 	{
-		DCCMode = false;
-		maunalMode = false;
-		programmingMode = false;
-		calibrationMode = false;
-
+		currentFunction = 0;
 		switch (buttonPress)
 		{
 		case 0:
-			DCCMode = true;
-			AutoDccMenu();
 			break;
 		case 1:
-			maunalMode = true;
-			ManualMove();
+			currentFunction = 1; 
 			break;
 		case 2:
-			calibrationMode = true;
-			CalibrateMenu();
+			currentFunction = 2;
 			break;
 		case 3:
-			programmingMode = true;
-			Programming();
+			currentFunction = 3;
 			break;
 		}
 	}
-	if (buttonPress >= tabs)
+	if (buttonPress >= tabParameters[0])
 	{
 		switch (menuPage)
 		{
 		case 0:
 			break;
 		case 1:
-			manualMoveTurntable(buttonPress);
 			break;
 		case 2:
-			calibrateTurntable(buttonPress);
 			break;
 		case 3:
-			programTurntable(buttonPress);
 			break;
 
 		}
 	}
 }
-
-void AutoDccMenu()
-{
-	menuPage = 0;
-	MenuTabs(menuPage);
-	drawAll(0, false);
-	autoDCCTurntable();
-}
-
-void ManualMove()
-{
-	menuPage = 1;
-	MenuTabs(menuPage);
-	drawAll(0, false);
-
-}
-
-void CalibrateMenu()
-{
-	menuPage = 2;
-	MenuTabs(menuPage);
-	drawAll(turntableOffset, true);
-}
-
-void Programming()
-{
-	menuPage = 3;
-	MenuTabs(menuPage);
-	drawAll(turntableOffset, true);
-}
-
+/*
 void sleepTFT()
 {
 
@@ -606,6 +519,7 @@ void sleepTFT()
 	}
 	else sleep++;
 }
+*/
 
 //    >>>>    FINISH    ----------------------------   Menu Functions   ----------------------------
 
@@ -633,14 +547,14 @@ int findX(int cX, int circleRad, int angle)
 
 int findY(int cY, int circleRad, int angle)
 {
-	return cY + circleRad * sin(angle * PI / 180);
+	return cY + circleRad * cos(angle * PI / 180);
 }
 
 float convertStepDeg(float unit, boolean toSteps)
 {
 	float step = (float(totalSteps) / 360)*unit;
 	float deg = 90 - (unit / float(totalSteps) * 360);
-	//Serial.println("Degrees = "+ String(deg));
+	Serial.println(deg);
 
 	if (toSteps == true)
 		return step;
@@ -677,20 +591,6 @@ void translateLCD(int tX, int tY)
 		float refX = 1-(((float)tY - (float)rMinY) / ((float)rMaxY - (float)rMinY)); // *tft.height();
 		refactorX = refX * tft.width();
 		refactorY = refY * tft.height();
-
-//#ifdef DEBUG
-//		Serial.println("-----------------------");
-////		Serial.println();
-////		Serial.println("pX = " + String(p.x));
-//		Serial.println("tX = " + String(tX));
-//		Serial.println("tY = " + String(tY));
-//		Serial.println("rMinX = " + String(rMinX));
-//		Serial.println("refY = " + String(refY));
-//		Serial.println("refX = " + String(refX));
-//		Serial.println("corrX = " + String(refactorX));
-//		Serial.println("corrY = " + String(refactorY));
-//		//Serial.println("-----------------------");
-//#endif
 		break;
 	}
 }
@@ -705,47 +605,33 @@ int touchButton(int tX, int tY)
 	int pW;
 	int buttonPressed = -1;
 	int arraySize = sizeof(buttonTextArray) / sizeof(buttonTextArray[0]);
-	/*
-	// touchscreen to Pixels based upon current screen rotation
-	float cX = (((float)tX - (float)TS_MINX) / ((float)TS_MAXX - (float)TS_MINX)); //* tft.width();
-	float cY = (((float)tY - (float)TS_MINY) / ((float)TS_MAXY - (float)TS_MINY)); // *tft.height();
-	*/
 
 	for (int i = 0; i < arraySize; i++)
 	{
 		int pX = buttonArrayX[i];
 		int pY = buttonArrayY[i];
 		int bt = buttonArrayT[i];
-//
-//#ifdef DEBUG
-//		Serial.println("-----------------------------------");
-//		Serial.println("pX = " + String(i));
-//		Serial.println("pX = " + String(tX));
-//		Serial.println("pY = " + String(tY));
-//		Serial.println("-----------------------------------");
-//#endif // DEBUG		
+
 		switch (bt)
 		{
 		case 1:
-			pH = tabHeight;
+			pH = tabParameters[1];
 			pW = tabWidth;
 			break;
 		case 2:
-			pH = buttonHeight;
-			pW = buttonWidth;
+			pH = buttonParameters [0];
+			pW = buttonParameters [1];
 		}
 
 		if (pX == 0 || pY == 0)
 		{
-			i = arraySize+1;
-			break;
+			i = arraySize;
 		}
 
 		if (tX>pX && tX<pX + pW && tY > pY && tY < pY + pH)
 		{
 			buttonPressed = i;
-			i = arraySize+1;
-			break;
+			i = arraySize;
 		}
 	}
 
@@ -754,28 +640,28 @@ int touchButton(int tX, int tY)
 
 void createTrackButtons(int button, String buttonText, boolean isActive)
 {
-	int degPos = convertStepDeg(PositionTrackDummy[button], false);
-	int pX = readButtonArray(buttonText, 0);
-	int pY = readButtonArray(buttonText, 1);
-	int buttonColour = 0;
+	int degPos = convertStepDeg(PositionTrack[button], false);
+	int pX = readButtonArray(buttonText, 1);
+	int pY = readButtonArray(buttonText, 2);
+	int buttonColour = buttonParameters[3];
 
 	if (pX == 0 || pY == 0)
 	{
-		pX = findX(xCentre, radiusTurntable + lengthTrack, degPos);
-		pY = findY(yCentre, radiusTurntable + lengthTrack, degPos);
+		pX = findX(xCentre, turntableParameters [0] + turntableParameters [2], degPos);
+		pY = findY(yCentre, turntableParameters [0] + turntableParameters [2], degPos);
 		writeButtonArray(buttonText, pX, pY, 2);
 	}
 
-	int offsetX = -(buttonWidth / 2);
-	int offsetY = -(buttonHeight / 2);
+	int offsetX = -(buttonParameters[1] / 2);
+	int offsetY = -(buttonParameters [0] / 2);
 
-	if (quadrant(getDegreeCoordinates(pX, pY)) == 0) { offsetY = -buttonHeight; }
+	if (quadrant(getDegreeCoordinates(pX, pY)) == 0) { offsetY = -buttonParameters [0]; }
 
-	if (isActive == true) buttonColour = butActiveColour;
+	if (isActive == true) buttonColour = buttonParameters [4];
 
-	tft.fillRoundRect(pX - offsetX, pY - offsetY, buttonHeight, buttonWidth, radiusButCorner, buttonColour);
-	tft.drawRoundRect(pX - offsetX - 2, pY - offsetY - 2, buttonHeight - 2, buttonWidth - 2, radiusButCorner, BLACK);
-	tft.setCursor(pX + (buttonHeight / 3), pY + (buttonWidth / 3));
+	tft.fillRoundRect(pX - offsetX, pY - offsetY, buttonParameters [0], buttonParameters [1], buttonParameters [2], buttonColour);
+	tft.drawRoundRect(pX - offsetX - 2, pY - offsetY - 2, buttonParameters [0] - 2, buttonParameters [1] - 2, buttonParameters [2], BLACK);
+	tft.setCursor(pX + (buttonParameters [0] / 3), pY + (buttonParameters [1] / 3));
 	//tft.setFont(&TurnButtonsRobotoBold10pt7b);
 	tft.setTextColor(BLACK);
 	tft.print(buttonText);
@@ -798,12 +684,10 @@ void writeButtonArray(String buttonText, int pX, int pY, int bt)
 	buttonArrayX[arrayPos] = pX; // rectangle x point
 	buttonArrayY[arrayPos] = pY; // rectangle y point
 	buttonArrayT[arrayPos] = bt; // rectangle height
-								 //buttonArray[arrayPos][2] = pH; // rectangle height
-								 //buttonArray[arrayPos][3] = pW; // rectangle width
 
 #ifdef DEBUG
 
-	//Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
+	Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
 
 #endif // DEBUG
 }
@@ -811,34 +695,22 @@ void writeButtonArray(String buttonText, int pX, int pY, int bt)
 int readButtonArray(String buttonText, int returnValue)
 {
 	int arrayPos = -1;
-
-	for (int i = 0; i < sizeof(buttonTextArray) / sizeof(buttonTextArray[0]); i++)
+	int readArray = sizeof(buttonTextArray) / sizeof(buttonTextArray[0]);
+	for (int i = 0; i < readArray;  i++)
 	{
-		if (buttonTextArray[i] == buttonText)
-		{
-			arrayPos = i;
-		}
+		if (buttonTextArray[i] == buttonText) arrayPos = i;
 	}
 
 	switch (returnValue)
 	{
-	case 0: //px
+	case 1:
 		return buttonArrayX[arrayPos];
 		break;
-	case 1: //py
+	case 2:
 		return buttonArrayY[arrayPos];
 		break;
-	case 2: //buttonType
+	case 3:
 		return buttonArrayT[arrayPos];
-		break;
-		/*case 'pH':
-		return buttonArray[arrayPos][2];
-		break;
-		case 'pW':
-		return buttonArray[arrayPos][3];
-		break;*/
-	case 3://array position
-		return arrayPos;
 		break;
 	default:
 		break;
@@ -849,170 +721,173 @@ int readButtonArray(String buttonText, int returnValue)
 //    >>>>    FINISH    -------------------------   Button Calculations    -------------------------
 
 //    >>>>    START     ----------------------------   Auto DCC Mode    ----------------------------
-
-void autoDCCTurntable()
-{
-
-}
-
 //    >>>>    FINISH    ----------------------------   Auto DCC Mode    ----------------------------
 
 //    <<<<    START     ----------------------    Manually Move Turntable     ----------------------
-
-void manualMoveTurntable(int buttonPress)
-{
-	//do {
-	//	switch (buttonPress)
-	//	{
-	//	case 5: // track 1	
-	//		break;
-	//	case 6: // track 2	
-	//		break;
-	//	case 7: // track 3	
-	//		break;
-	//	case 8:	// track 4
-	//		break;
-	//	case 9: // track 5	
-	//		break;
-	//	case 10: // track 6	
-	//		break;
-	//	}
-	//} while (menuPage = 1);
-}
-
-
 //    <<<<    FINISH    ----------------------    Manually Move Turntable     ----------------------
 
-//    >>>>    START     --------------------------    Calibrate Bridge    --------------------------
-
-void calibrateTurntable(int buttonPress)
-{
-
-	switch (buttonPress)
-	{
-	case 4: // position 1
-		break;
-	}
-}
-//    <<<<    FINISH    --------------------------    Calibrate Bridge    --------------------------
-
-//    >>>>    START     ---------------    Select And Programme Turntable Tracks     ---------------
-
-void programTurntable(int buttonPress)
-{
-
-	switch (buttonPress)
-	{
-	case 5: // position 1
-		break;
-	case 6: // position 2
-		break;
-	case 7: // position 3
-		break;
-	case 8: // position 4
-		break;
-	case 9: // position 5
-		break;
-	case 10: // position 6
-		break;
-	case 11: // move << -10
-		break;
-	case 12: // position < -1
-		break;
-	case 13: // move >> +10
-		break;
-	case 14: // move > + 1
-		break;
-	case 15: // Save position 
-		break;
-	}
-}
-
+//    <<<<    START     ---------------    Select And Programme Turntable Tracks     ---------------
 //    <<<<    FINISH    ---------------    Select And Programme Turntable Tracks     ---------------
 
 //    <<<<    START     ---------------------------    Stepper Voids     ---------------------------
+
+#ifdef TESTING
+
+int dummyStepper(int dummySteps, int delaySteps)
+{
+	int dummyStepPosition = 0;
+
+	if (delaySteps == 0) { delaySteps = 75; }
+	//		if (isRotatingCW){dummyStepPosition = currentStepPosition +1;}
+	//		else (dummyStepPosition = currentStepPosition -1;)
+
+	if (dummySteps>0) { dummyStepPosition = currentStepPosition + 1; }
+	else { dummyStepPosition = currentStepPosition - 1; }
+
+	if (dummyStepPosition > totalSteps) { dummyStepPosition = 0; }
+	if (dummyStepPosition < 0) { dummyStepPosition = totalSteps; }
+
+	delay(delaySteps);
+
+	distanceToGo = selectedTracks[1] - currentStepPosition;
+
+	return dummyStepPosition;
+}
+
+
+#endif // TESTING
+
+int calcLeastSteps()
+{
+	int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
+
+	if (getStepsDistance > (totalSteps / 2))
+		return getStepsDistance - totalSteps;
+	else if (getStepsDistance < -(totalSteps / 2))
+		return getStepsDistance + totalSteps; 
+}
+
 void doStepperMove()
 {
-	stepper.run();	// Run the Stepper Motor
+	//      stepper.run();	// Run the Stepper Motor
+#ifdef TESTING
 	boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
+#elif
+	boolean isInMotion = (abs(distanceToGo) > 0);
+#endif // TESTING
+
 	boolean newTargetSet = false;
 
 	// If there is a new target location, set the target
-	if (newTargetLocation == true)
+	if (newTargetLocation)
 	{
 		SetStepperTargetLocation();
 		//          displayOutput("Moving to ", ""));
 		newTargetSet = true;
 	}
 
-	if ((currentStepPosition % totalSteps) == 0)
+	if (inMotionToNewTarget)
 	{
-		//setCurrentPosition seems to always reset the position to 0, ignoring the parameter
-		//str1 = String(F("Current location: "));
-		//				str2 = String(stepper.currentPosition());
-		//str2 = String(currentStepPosition);
-		//str3 = String(F(" % STEPCOUNT.	Why here?"));
-		//displayOutput(true, str1 + str2, str3);
+		if ((!isInMotion) && (!newTargetSet))
+		{
+			//str1 = String(F("Not Moving!	DtG: "));
+			//str1 = String(stepper.distanceToGo());
+			//String(F(" TP: "));
+			//str2 = String(stepper.targetPosition());
+			//String(F(" CP: "));
+			//str3 = String(stepper.currentPosition());
+			//String(F(" S: "));
+			//str4 = String(stepper.speed());
+
+		}
+		//release the brake
+		//	brakeservo.write(servoRelease);
+		//	delay(5);
+		//	inMotionToNewTarget = isInMotion;
+	}
+	else
+	{
+		//				if ((stepper.currentPosition() % totalSteps) == 0)
+		if ((currentStepPosition % totalSteps) == 0)
+		{
+			//setCurrentPosition seems to always reset the position to 0, ignoring the parameter
+			//str1 = String(F("Current location: "));
+			////				str2 = String(stepper.currentPosition());
+			//str2 = String(currentStepPosition);
+			//str3 = String(F(" % STEPCOUNT.	Why here?"));
+			//displayOutput(true, str1 + str2, str3);
+		}
 	}
 
 	if (mainDiff < 0) { displayRotatingCW = false; }
 	else if (mainDiff > 0) { displayRotatingCW = true; }
 
 }
-//    ----------------------------------------------------------------------------------------------
-//
-// Subroutine: SetStepperTargetLocation()
-//	Takes the global variables: tableTargetHeadOrTail, and tableTargetPosition, and sets the stepper
-//	object moveTo() target position in steps-	inserts values back into "doStepperMove()"
-//
-//    ----------------------------------------------------------------------------------------------
 
 void SetStepperTargetLocation()
 {
 	int newTargetLoc = -1;
-	if (tableTargetHead)
-	{	//use head location variable	
-		newTargetLoc = PositionTrack[tableTargetPosition];
-		inMotionToNewTarget = true;
-	}
-	else
-	{	//use tail location variable	
-		newTargetLoc = PositionTrack[tableTargetPosition];
-		inMotionToNewTarget = true;
-	}
+
+	//if (tableTargetHead)
+	//{	//use head location variable
+	//	{
+	//		newTargetLoc = PositionTrack[tableTargetPosition];
+	//		inMotionToNewTarget = true;
+	//	}
+	//}
+	//else
+	//{	//use tail location variable
+	//	{
+	//		newTargetLoc = GetTrackTail[tableTargetPosition];
+	//		inMotionToNewTarget = true;
+	//	}
+	//}
 
 	if (newTargetLoc > 0)
 	{
 		//int currentLoc = stepper.currentPosition();
 		int currentLoc = currentStepPosition;
 		int mainDiff = newTargetLoc - currentLoc;
-
 		if (mainDiff > (totalSteps / 2))
+		{
 			mainDiff = mainDiff - totalSteps;
-		else
+		}
+		else if (mainDiff < (-totalSteps / 2))
+		{
 			mainDiff = mainDiff + totalSteps;
-	}
+		}
 
-	if (mainDiff < 0)
-	{
-		mainDiff -= MOTOR_OVERSHOOT;
-		overshootDestination = MOTOR_OVERSHOOT;
+		if (mainDiff < 0)
+		{
+			mainDiff -= MOTOR_OVERSHOOT;
+			overshootDestination = MOTOR_OVERSHOOT;
+		}
+#ifdef TESTING
+		dummyStepper(mainDiff, 0);
+#elif
+		stepper.move(mainDiff);
+#endif // TESTING
+
 	}
-	//			stepper.move(mainDiff);
 	//programmingMode = false;
 	newTargetLocation = false;
 }
+
 //    ----------------------------------------------------------------------------------------------
+//
 //	Stepper Timer sub routine this runs from the main loop. It also supports the release function.
+//
 //    ----------------------------------------------------------------------------------------------
 
 void stepperTimer()
 {
 	int currentLoc = 0;
 
-	// Run the Stepper Motor 
-	stepper.run();
-	boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
+	// Run the Stepper Motor //
+	//			stepper.run();
+	//		boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
+
+	boolean isInMotion = (abs(distanceToGo) > 0);
 
 	//Check if we have any distance to move for release() timeout.	Can check the
 	// buffered var isInMotion because we also check the other variables.
@@ -1028,7 +903,9 @@ void stepperTimer()
 		{
 			if (overshootDestination > 0)
 			{
-				stepper.move(overshootDestination);
+
+				dummyStepper(overshootDestination, 0);
+				//					stepper.move(overshootDestination);
 				overshootDestination = -1;
 			}
 
@@ -1036,17 +913,29 @@ void stepperTimer()
 			{
 				//If isReleased, don't release again.
 				isReleased = true;
-				stepper.currentPosition();	// Resets the position to the actual positive number it should be
-				currentLoc = stepper.currentPosition() % totalSteps;
+				str1 = String(F("Relative Current Position: "));
+				str2 = String(currentStepPosition);	//shows position the table thinks it is at (how it got here)
+				displayOutput(true, str1 + str2, "");
 
-				if (currentLoc < 0)
-					currentLoc += totalSteps;
+				currentLoc = currentStepPosition;	// Resets the position to the actual positive number it should be
 
-				stepper.setCurrentPosition(currentLoc);
-				stepper.moveTo(currentLoc);
+													//					  str1 = String(stepper.currentPosition());	//shows position the table thinks it is at (how it got here)
+													//                    int currentLoc = stepper.currentPosition();	// Resets the position to the actual positive number it should be
 
-				//String(F("	Actual Current Position: "));
-				//str2 = String(stepper.currentPosition());	// shows the position value corrected.
+				currentLoc = currentLoc % totalSteps;
+
+				if (currentLoc < 0) { currentLoc += totalSteps; }
+
+
+				//                    stepper.setCurrentPosition(currentLoc);
+				//                    stepper.moveTo(currentLoc);
+				dummyStepper(currentLoc, 0);
+
+
+
+
+				//                    String(F("	Actual Current Position: "));
+				//                    str2 = String(stepper.currentPosition());	// shows the position value corrected.
 
 				//Set the servo brake
 				//	brakeservo.write(servoBrake);
@@ -1061,33 +950,7 @@ void stepperTimer()
 	}
 }
 
-void calcLeastSteps(int trA, int trB)
-{
-	int currentLoc = PositionTrack[trA];
-	int newTargetLoc = PositionTrack[trB];
-	int getMotorStepCount = (totalSteps / 2);
+//    <<<<    FINISH    ---------------------------    Stepper Voids     ---------------------------
 
-	if (newTargetLoc > 0)
-	{
-		currentLoc = stepper.currentPosition();
-		mainDiff = newTargetLoc - currentLoc;
-		if (mainDiff > getMotorStepCount) { mainDiff = mainDiff - totalSteps; }
-		else if (mainDiff < -getMotorStepCount) { mainDiff = mainDiff + totalSteps; }
 
-		if (mainDiff < 0)
-		{
-			mainDiff -= MOTOR_OVERSHOOT;
-			overshootDestination = MOTOR_OVERSHOOT;
-		}
-
-		if (mainDiff < 0) { displayRotatingCW = false; }
-		else if (mainDiff > 0) { displayRotatingCW = true; }
-
-		String textMove;
-		if (displayRotatingCW) { textMove = "CW"; }
-		else { textMove = "CCW"; }
-
-		stepper.move(mainDiff);
-	}
-}
 //    <<<<    FINISH    ---------------------------    Stepper Voids     ---------------------------
