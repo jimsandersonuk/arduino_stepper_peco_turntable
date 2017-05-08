@@ -74,7 +74,7 @@ const int GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 }; // Array for Tail Tracks
 
 #ifdef DEBUG 
 int PositionTrack[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 }; //{ 0, 0, 0, 0, 0, 0, 0 };   // Save EEPROM addresses to array - index 0 = calibration position
-#elif
+#else
 int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };
 #endif // DEBUG 
 
@@ -118,10 +118,6 @@ const int  totalSteps = 200 * 16;		//number of steps for a full rotation
 
 //    >>>>    START     -------------------------------   TFT Menu   -------------------------------
 
-int xCentre = tft.height() / 2;
-int yCentre = (tft.width() / 2);
-int turnTablePos = yCentre;
-
 int menuPage = 0;
 
 const int turntableParameters [3] = {60, 25, 25};	//radiusTurntable, turntableOffset, lengthTrack
@@ -138,7 +134,12 @@ String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "P
 const int tabParameters [5] = {4, 20, 3, 14, 6}; //tabs,tabHeight,tabPad,sidePadding,menuBorder
 int tabWidth;
 
-const int buttonParameters [5] = {30, 30, 4, GREENYELLOW, ORANGE}; //buttonHeight, buttonWidth, radiusButCorner, butColour, butActiveColour
+const unsigned int buttonParameters [5] = {30, 30, 4, GREENYELLOW, ORANGE}; //buttonHeight, buttonWidth, radiusButCorner, butColour, butActiveColour
+
+int xCentre = tft.height() / 2;
+int yCentre = ((tft.width() + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
+int turnTablePos = yCentre;
+
 //    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
 
 
@@ -158,45 +159,32 @@ Adafruit_StepperMotor *mystepper = AFMStop.getStepper(200, 2);   //Connect stepp
 																 //you can change these to SINGLE, DOUBLE, INTERLEAVE or MICROSTEP! wrapper for the motor!(3200 Microsteps / revolution)
 void release2() { mystepper->release(); }
 
-//#ifdef DEBUG
-	//int forwardstep2() { return dummyStepper(1, 25); } //75 real
-	//int backwardstep2() { return dummyStepper(-1, 25); } //75 real
-
-//#elif
-	void forwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
-	void backwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
-
-//#endif // DEBUG
-
-AccelStepper stepper = AccelStepper(forwardstep2, backwardstep2); // wrap the stepper in an AccelStepper object
+#ifdef TESTING
+int forwardstep2() { return dummyStepper(1, 25); }; //75 real
+int backwardstep2() { return dummyStepper(-1, 25); }; //75 real
+#else
+	//void forwardstep2() { mystepper->onestep(FORWARD, MICROSTEP); }
+	//void backwardstep2() { mystepper->onestep(BACKWARD, MICROSTEP); }
+	void release2() { mystepper->release(); }
+	AccelStepper stepper = AccelStepper(forwardstep2, backwardstep2); // wrap the stepper in an AccelStepper object
+#endif // TESTING
 
 //    <<<<    FINISH    ----------------------   Adafruit MotorShield Setup   ----------------------
 
 //    >>>>    START     --------------------------------   SETUP    --------------------------------
 void setup()
 {
-
-#ifdef DEBUG
-	Serial.begin(115200);
-	//Serial.print("TFT size is "); Serial.print(tft.width()); Serial.print("x"); Serial.println(tft.height());
-#endif
-
 	initialiseDCC();	//Start up DCC reading
 	tft.reset();
 	tft.begin(0x9325);
-
 	tft.setRotation(LCDROTATION);
 	tft.fillScreen(BLACK);
-
 	pinMode(13, OUTPUT);
 	startup();
 }
 
 void startup()
 {
-
-	delay(1000);
-	tft.fillScreen(BLACK);
 	MenuTabs(0);
 	drawMenuFrame();
 	delay(3000);
@@ -206,11 +194,15 @@ void startup()
 //    >>>>    START     ---------------------------------   LOOP   ---------------------------------
 void loop()
 {
-	//sleep++;
-	//sleepTFT();
 
-	digitalWrite(13, HIGH);
 	TSPoint p = ts.getPoint();
+	digitalWrite(13, LOW);
+
+	// if sharing pins, you'll need to fix the directions of the touchscreen pins 
+	//pinMode(XP, OUTPUT); 
+	pinMode(XM, OUTPUT);
+	pinMode(YP, OUTPUT);
+	//pinMode(YM, OUTPUT); 
 
 	if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
 	{
@@ -221,6 +213,7 @@ void loop()
 #endif
 		decideButtonAction(selectedButton);
 	}
+	digitalWrite(13, HIGH);
 }
 
 //    >>>>    FINISH    ---------------------------------   LOOP   ---------------------------------
@@ -441,17 +434,17 @@ void MenuTabs(int tabSelected)
 	for (int i = 0; i < tabParameters[0]; i++)
 	{
 		if (i == 0)
-			tabX = tabParameters[4];
+			tabX = tabParameters[3];
 		else
 			tabX = lastTabX + tabWidth + tabParameters[2];
 		if (tabSelected == i)
 		{
-			tft.fillRect(tabX, tabY, tabWidth, tabParameters[3], LIGHTGREY);
+			tft.fillRect(tabX, tabY, tabWidth, tabParameters[1], LIGHTGREY);
 			//tft.setFont(&RobotoBold5pt7b);
 		}
 		else
 		{
-			tft.fillRect(tabX, tabY, tabWidth,  tabParameters[3], DARKGREY);
+			tft.fillRect(tabX, tabY, tabWidth,  tabParameters[1], DARKGREY);
 			//tft.setFont(&Roboto5pt7b);
 	}
 
@@ -477,12 +470,14 @@ void decideButtonAction(int buttonPress)
 	if (buttonPress < tabParameters[0])
 	{
 		currentFunction = 0;
+		MenuTabs(buttonPress);
 		switch (buttonPress)
 		{
 		case 0:
 			break;
 		case 1:
 			currentFunction = 1; 
+			drawAll(false);
 			break;
 		case 2:
 			currentFunction = 2;
@@ -547,7 +542,7 @@ int findX(int cX, int circleRad, int angle)
 
 int findY(int cY, int circleRad, int angle)
 {
-	return cY + circleRad * cos(angle * PI / 180);
+	return cY + circleRad * sin(angle * PI / 180);
 }
 
 float convertStepDeg(float unit, boolean toSteps)
@@ -687,7 +682,7 @@ void writeButtonArray(String buttonText, int pX, int pY, int bt)
 
 #ifdef DEBUG
 
-	Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
+	//Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
 
 #endif // DEBUG
 }
@@ -759,7 +754,12 @@ int dummyStepper(int dummySteps, int delaySteps)
 
 int calcLeastSteps()
 {
+
+#ifdef TESTING
+	int getStepsDistance = selectedTracks[1] - currentStepPosition;
+#else
 	int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
+#endif // TESTING
 
 	if (getStepsDistance > (totalSteps / 2))
 		return getStepsDistance - totalSteps;
@@ -769,11 +769,13 @@ int calcLeastSteps()
 
 void doStepperMove()
 {
-	//      stepper.run();	// Run the Stepper Motor
+
 #ifdef TESTING
-	boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
-#elif
 	boolean isInMotion = (abs(distanceToGo) > 0);
+#else
+	stepper.run();	// Run the Stepper Motor
+	boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
+
 #endif // TESTING
 
 	boolean newTargetSet = false;
@@ -782,11 +784,10 @@ void doStepperMove()
 	if (newTargetLocation)
 	{
 		SetStepperTargetLocation();
-		//          displayOutput("Moving to ", ""));
 		newTargetSet = true;
 	}
 
-	if (inMotionToNewTarget)
+	if (isInMotion)
 	{
 		if ((!isInMotion) && (!newTargetSet))
 		{
@@ -864,7 +865,7 @@ void SetStepperTargetLocation()
 		}
 #ifdef TESTING
 		dummyStepper(mainDiff, 0);
-#elif
+#else
 		stepper.move(mainDiff);
 #endif // TESTING
 
@@ -891,7 +892,7 @@ void stepperTimer()
 
 	//Check if we have any distance to move for release() timeout.	Can check the
 	// buffered var isInMotion because we also check the other variables.
-	if (isInMotion || programmingMode)
+	if (isInMotion || currentFunction == 3)
 	{
 		//We still have some distance to move, so reset the release timeout
 		stepperLastMoveTime = millis();
@@ -903,9 +904,12 @@ void stepperTimer()
 		{
 			if (overshootDestination > 0)
 			{
-
+#ifdef TESTING
 				dummyStepper(overshootDestination, 0);
-				//					stepper.move(overshootDestination);
+#else
+				stepper.move(overshootDestination);
+#endif // TESTING
+
 				overshootDestination = -1;
 			}
 
@@ -913,37 +917,35 @@ void stepperTimer()
 			{
 				//If isReleased, don't release again.
 				isReleased = true;
-				str1 = String(F("Relative Current Position: "));
-				str2 = String(currentStepPosition);	//shows position the table thinks it is at (how it got here)
-				displayOutput(true, str1 + str2, "");
+				//str1 = String(F("Relative Current Position: "));
+				//str2 = String(currentStepPosition);	//shows position the table thinks it is at (how it got here)
+				//displayOutput(true, str1 + str2, "");
 
 				currentLoc = currentStepPosition;	// Resets the position to the actual positive number it should be
 
-													//					  str1 = String(stepper.currentPosition());	//shows position the table thinks it is at (how it got here)
-													//                    int currentLoc = stepper.currentPosition();	// Resets the position to the actual positive number it should be
+				//str1 = String(stepper.currentPosition());	//shows position the table thinks it is at (how it got here)
+				//int currentLoc = stepper.currentPosition();	// Resets the position to the actual positive number it should be
 
 				currentLoc = currentLoc % totalSteps;
 
 				if (currentLoc < 0) { currentLoc += totalSteps; }
 
-
-				//                    stepper.setCurrentPosition(currentLoc);
-				//                    stepper.moveTo(currentLoc);
+#ifdef TESTING
 				dummyStepper(currentLoc, 0);
+#else
+				stepper.setCurrentPosition(currentLoc);
+				stepper.moveTo(currentLoc);
+				//String(F("	Actual Current Position: "));
+				//str2 = String(stepper.currentPosition());	// shows the position value corrected.
+#endif // TESTING
 
+//Set the servo brake
+	//brakeservo.write(servoBrake);
+	//delay(750);
 
-
-
-				//                    String(F("	Actual Current Position: "));
-				//                    str2 = String(stepper.currentPosition());	// shows the position value corrected.
-
-				//Set the servo brake
-				//	brakeservo.write(servoBrake);
-				//	delay(750);
-
-				//release the motor
-				//                  release2();
-				// str1 = String(F("	Brake Set & Motor Released "));
+	//release the motor
+	//release2();
+	//str1 = String(F("	Brake Set & Motor Released "));
 
 			}
 		}

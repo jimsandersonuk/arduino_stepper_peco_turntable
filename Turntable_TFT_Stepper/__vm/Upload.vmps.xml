@@ -9,70 +9,28 @@
       <VCCodeMacros />
     </VCCodeModel>
     <BreakPoints>
-      <BreakPoint Index="1" Name="Turntable_TFT_Stepper.ino, line 236" Id="3c588568-b1e2-4b3f-9c98-f9136777e79b" Enabled="1" Message="  Millis is currently {millis()}.&#xD;&#xA;    This tutorial debug trace point prints a message every 250ms&#xD;&#xA;    The break point property called 'Continue Execution' controls if code should pause here and wait for you to click 'Continue'.&#xD;&#xA;    To stop debug, click stop debugging or close/stop the serial monitor.&#xD;&#xA;    When debug ends, serial debug will continue to break/pause the mcu or transmit trace message, wifi debug will not.&#xD;&#xA;    This breakpoint exists at the start of the loop() function, where you see a red dot.&#xD;&#xA;    The red dot is a ‘breakpoint’. Edit the properties of a breakpoint by right clicking it or open the 'Debug&gt;Other Windows&gt;Breakpoint List'&#xD;&#xA;    This breakpoint is automatically set by Visual Micro to demonstrate the Arduino debugger.&#xD;&#xA;    Add your own breakpoints by placing the cursor on any code line and pressing F9. Press F9 again to delete the breakpoint.&#xD;&#xA;    Read more about the Visual Micro debugger at http://www.visualmicro.com/page/Debugging-for-Arduino.aspx&#xD;&#xA;    Take some time to learn about debugging, it’s worth it!&#xD;&#xA;    To switch the demo breakpoint and other tips off, deselect Visual Micro&gt;Tutorial Mode.&#xD;&#xA;    Switch debugging off by changing from tool bar (Configuratin) from 'Debug' to 'Release'" MessageTextType="0" PreProcessedMessage="  Millis is currently {0}.&#xD;&#xA;    This tutorial debug trace point prints a message every 250ms&#xD;&#xA;    The break point property called 'Continue Execution' controls if code should pause here and wait for you to click 'Continue'.&#xD;&#xA;    To stop debug, click stop debugging or close/stop the serial monitor.&#xD;&#xA;    When debug ends, serial debug will continue to break/pause the mcu or transmit trace message, wifi debug will not.&#xD;&#xA;    This breakpoint exists at the start of the loop() function, where you see a red dot.&#xD;&#xA;    The red dot is a ‘breakpoint’. Edit the properties of a breakpoint by right clicking it or open the 'Debug&gt;Other Windows&gt;Breakpoint List'&#xD;&#xA;    This breakpoint is automatically set by Visual Micro to demonstrate the Arduino debugger.&#xD;&#xA;    Add your own breakpoints by placing the cursor on any code line and pressing F9. Press F9 again to delete the breakpoint.&#xD;&#xA;    Read more about the Visual Micro debugger at http://www.visualmicro.com/page/Debugging-for-Arduino.aspx&#xD;&#xA;    Take some time to learn about debugging, it’s worth it!&#xD;&#xA;    To switch the demo breakpoint and other tips off, deselect Visual Micro&gt;Tutorial Mode.&#xD;&#xA;    Switch debugging off by changing from tool bar (Configuratin) from 'Debug' to 'Release'" Condition="millis()&gt;0 || millis()&gt;1" ConditionType="1" CurrentHits="0" File="c:\users\ukjsa01\documents\arduino\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="236" FileColumn="1" FunctionName="" FunctionLineOffset="1" FunctionColumnOffset="1" HitCountTarget="250" HitCountType="4" Language="C++" LocationType="3" Tag="&lt;vmbp Id='3c588568-b1e2-4b3f-9c98-f9136777e79b'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="0">
+      <BreakPoint Index="1" Name="Turntable_TFT_Stepper.ino, line 195" Id="fc045ad6-dff0-44c3-9126-ac7a7add783d" Enabled="1" Message="  Millis is currently {millis()}.&#xD;&#xA;    This tutorial debug trace point prints a message every 250ms&#xD;&#xA;    The break point property called 'Continue Execution' controls if code should pause here and wait for you to click 'Continue'.&#xD;&#xA;    To stop debug, click stop debugging or close/stop the serial monitor.&#xD;&#xA;    When debug ends, serial debug will continue to break/pause the mcu or transmit trace message, wifi debug will not.&#xD;&#xA;    This breakpoint exists at the start of the loop() function, where you see a red dot.&#xD;&#xA;    The red dot is a ‘breakpoint’. Edit the properties of a breakpoint by right clicking it or open the 'Debug&gt;Other Windows&gt;Breakpoint List'&#xD;&#xA;    This breakpoint is automatically set by Visual Micro to demonstrate the Arduino debugger.&#xD;&#xA;    Add your own breakpoints by placing the cursor on any code line and pressing F9. Press F9 again to delete the breakpoint.&#xD;&#xA;    Read more about the Visual Micro debugger at http://www.visualmicro.com/page/Debugging-for-Arduino.aspx&#xD;&#xA;    Take some time to learn about debugging, it’s worth it!&#xD;&#xA;    To switch the demo breakpoint and other tips off, deselect Visual Micro&gt;Tutorial Mode.&#xD;&#xA;    Switch debugging off by changing from tool bar (Configuratin) from 'Debug' to 'Release'" MessageTextType="0" PreProcessedMessage="  Millis is currently {0}.&#xD;&#xA;    This tutorial debug trace point prints a message every 250ms&#xD;&#xA;    The break point property called 'Continue Execution' controls if code should pause here and wait for you to click 'Continue'.&#xD;&#xA;    To stop debug, click stop debugging or close/stop the serial monitor.&#xD;&#xA;    When debug ends, serial debug will continue to break/pause the mcu or transmit trace message, wifi debug will not.&#xD;&#xA;    This breakpoint exists at the start of the loop() function, where you see a red dot.&#xD;&#xA;    The red dot is a ‘breakpoint’. Edit the properties of a breakpoint by right clicking it or open the 'Debug&gt;Other Windows&gt;Breakpoint List'&#xD;&#xA;    This breakpoint is automatically set by Visual Micro to demonstrate the Arduino debugger.&#xD;&#xA;    Add your own breakpoints by placing the cursor on any code line and pressing F9. Press F9 again to delete the breakpoint.&#xD;&#xA;    Read more about the Visual Micro debugger at http://www.visualmicro.com/page/Debugging-for-Arduino.aspx&#xD;&#xA;    Take some time to learn about debugging, it’s worth it!&#xD;&#xA;    To switch the demo breakpoint and other tips off, deselect Visual Micro&gt;Tutorial Mode.&#xD;&#xA;    Switch debugging off by changing from tool bar (Configuratin) from 'Debug' to 'Release'" Condition="millis()&gt;0 || millis()&gt;1" ConditionType="1" CurrentHits="0" File="c:\users\workshop_general\arduino\git\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="195" FileColumn="1" FunctionName="" FunctionLineOffset="1" FunctionColumnOffset="1" HitCountTarget="250" HitCountType="4" Language="C++" LocationType="3" Tag="&lt;vmbp Id='fc045ad6-dff0-44c3-9126-ac7a7add783d'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="0">
+        <Source>188		MenuTabs(0);
+189		drawMenuFrame();
+190		delay(3000);
+191	}
+192	//    &gt;&gt;&gt;&gt;    FINISH    --------------------------------   SETUP    --------------------------------
+193	
+194	//    &gt;&gt;&gt;&gt;    START     ---------------------------------   LOOP   ---------------------------------
+--&gt;195	void loop()
+196	{
+197	
+198		TSPoint p = ts.getPoint();
+199		digitalWrite(13, LOW);
+200	
+201		// if sharing pins, you'll need to fix the directions of the touchscreen pins 
+202		//pinMode(XP, OUTPUT); 
+203		pinMode(XM, OUTPUT);
+204		pinMode(YP, OUTPUT);
+</Source>
         <MessageVariables>
           <MessageVariable Name="millis()" Index="1" />
         </MessageVariables>
-      </BreakPoint>
-      <BreakPoint Index="2" Name="Turntable_TFT_Stepper.ino, line 258" Id="16e2b5e7-5ee0-4246-b857-11ae8764825f" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\workshop_general\arduino\git\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="258" FileColumn="1" FunctionName="loop()" FunctionLineOffset="16" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='16e2b5e7-5ee0-4246-b857-11ae8764825f'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
-        <Source>251			int selectedButton = touchButton(refactorX, refactorY);
-252	#ifdef DEBUG
-253		Serial.println("Selected Button = " + String(selectedButton));
-254	#endif
-255	
-256		//tft.fillScreen(BLACK);
-257		MenuTabs(selectedButton);
---&gt;258			//drawAll(0, false);
-259			decideButtonAction(selectedButton);
-260		}
-261	}
-262	
-263	//    &gt;&gt;&gt;&gt;    FINISH    ---------------------------------   LOOP   ---------------------------------
-264	
-265	//    &gt;&gt;&gt;&gt;    START     --------------------------    EEPROM Commands     --------------------------
-266	
-267	void EEPROMWritelong(int address, int value)
-</Source>
-      </BreakPoint>
-      <BreakPoint Index="3" Name="Turntable_TFT_Stepper.ino, line 576" Id="6b1c6737-1af3-437f-b1b8-bc6cc33f7263" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\workshop_general\arduino\git\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="576" FileColumn="1" FunctionName="AutoDccMenu()" FunctionLineOffset="5" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='6b1c6737-1af3-437f-b1b8-bc6cc33f7263'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
-        <Source>569	}
-570	
-571	void AutoDccMenu()
-572	{
-573		menuPage = 0;
-574		MenuTabs(menuPage);
-575		drawAll(0, false);
---&gt;576		autoDCCTurntable();
-577	}
-578	
-579	void ManualMove()
-580	{
-581		menuPage = 1;
-582		MenuTabs(menuPage);
-583		drawAll(0, false);
-584	}
-585	
-</Source>
-      </BreakPoint>
-      <BreakPoint Index="4" Name="Turntable_TFT_Stepper.ino, line 536" Id="7fb0e06f-a613-4d23-bc8e-cfc7afade5e6" Enabled="1" Message="" MessageTextType="2" PreProcessedMessage="" Condition="" ConditionType="1" CurrentHits="0" File="c:\users\workshop_general\arduino\git\arduino_stepper_peco_turntable\turntable_tft_stepper\turntable_tft_stepper.ino" FileLine="536" FileColumn="1" FunctionName="decideButtonAction(int buttonPress)" FunctionLineOffset="18" FunctionColumnOffset="1" HitCountTarget="1" HitCountType="1" Language="C++" LocationType="3" Tag="&lt;vmbp Id='7fb0e06f-a613-4d23-bc8e-cfc7afade5e6'/&gt;" Type="1" ToString="System.__ComObject" BreakWhenHit="1">
-        <Source>529			calibrationMode = false;
-530	
-531			switch (buttonPress)
-532			{
-533			case 0:
-534				DCCMode = true;
-535				AutoDccMenu();
---&gt;536				break;
-537			case 1:
-538				maunalMode = true;
-539				ManualMove();
-540				break;
-541			case 2:
-542				calibrationMode = true;
-543				CalibrateMenu();
-544				break;
-545			case 3:
-</Source>
       </BreakPoint>
     </BreakPoints>
   </Program>
