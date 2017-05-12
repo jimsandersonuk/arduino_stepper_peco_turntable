@@ -26,7 +26,7 @@ Author:  jimsanderson
 
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
-#include <Fonts/Symbols12pt7b.h>
+#include <Fonts/wingdings_12pt7b.h>
 
 #include <DCC_Decoder.h>
 #include <EEPROM.h>
@@ -368,7 +368,7 @@ void drawAll(boolean calibrationMode)
 	printArrayToSerial();
 #endif // DEBUG
 
-	drawButtons(3);
+	drawButtons(3,false);
 }
 
 void drawTurntable()
@@ -721,7 +721,7 @@ void createFunctionbuttons()
 	writeButtonArray("Save", tft.width() - buttonParameters[0] - tabParameters[4]*2, tft.height() - buttonParameters[0] - tabParameters[4]*2, 3);
 }
 
-void drawButtons(int butttonPage)
+void drawButtons(int butttonPage, boolean reset)
 {
 	int butColour = buttonColour;
 	int minArray;
@@ -762,17 +762,12 @@ void drawButtons(int butttonPage)
 		Serial.println("X: " + String(pX) + " Y: " + String(pY) + " T: " + String(bT) + " N: " + String(buttonText));
 #endif //DEBUG
 
-
-
-
-
+		butColour = LIGHTGREY;
 
 		if (bT == 3)
 		{
 			butColour = GREENYELLOW;
 		}
-
-
 
 		if (buttonTextArray[i] == "C")
 		{
@@ -791,6 +786,16 @@ void drawButtons(int butttonPage)
 			cursorY = 14;
 			butColour = MIDGREEN;
 		}
+		if (buttonTextArray[i] == "Save")
+		{
+			cursorX = 7;
+			cursorY = 14;
+			butColour = ORANGE;
+			buttonText = "<";
+		}
+
+		if (reset == true) butColour = BLACK;
+
 		tft.fillRoundRect(pX, pY, buttonParameters[0], buttonParameters[1], buttonParameters[2], butColour);
 
 		tft.setCursor(pX + cursorX, pY + cursorY);		
