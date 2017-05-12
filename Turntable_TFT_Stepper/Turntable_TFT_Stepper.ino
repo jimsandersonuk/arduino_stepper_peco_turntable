@@ -26,6 +26,7 @@ Author:  jimsanderson
 
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/Symbols12pt7b.h>
 
 #include <DCC_Decoder.h>
 #include <EEPROM.h>
@@ -59,12 +60,13 @@ Author:  jimsanderson
 #define DARKGREY    0x7BEF      /* 128, 128, 128 */
 #define GREEN       0x07E0      /*   0, 255,   0 */
 #define RED         0xF800      /* 255,   0,   0 */
+#define BLUE        0x001F      /*   0,   0, 255 */
 #define YELLOW      0xFFE0      /* 255, 255,   0 */
 #define WHITE       0xFFFF      /* 255, 255, 255 */
 #define ORANGE      0xFD20      /* 255, 165,   0 */
 #define GREENYELLOW 0xAFE5      /* 173, 255,  47 */
-#define GREY		0x8410
-
+#define GREY        0x8410
+#define MIDGREEN    0x6C80      /*  50, 230,   70*/
 
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 Adafruit_TFTLCD tft(YP, XM, LCD_WR, LCD_RD, LCD_RESET);
@@ -123,12 +125,12 @@ const int  totalSteps = 200 * 16;		//number of steps for a full rotation
 
 int menuPage = 0;
 int storeKeyPress;
-const int turntableParameters[5] = { 60, 25, 25, 5, 8};	//radiusTurntable, turntableOffset, lengthTrack, trackWidth, inner radius
+const int turntableParameters[5] = { 60, 25, 25, 5, 8 };	//radiusTurntable, turntableOffset, lengthTrack, trackWidth, inner radius
 
 int refactorX = 0;
 int refactorY = 0;
 
-const int buttonArraySize = 17;
+const int buttonArraySize = 16;
 int buttonArrayX[buttonArraySize];
 int buttonArrayY[buttonArraySize];
 int buttonArrayT[buttonArraySize] = { 1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2 };
@@ -137,13 +139,14 @@ String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "P
 const int tabParameters[5] = { 4, 20, 3, 14, 6 }; //tabs,tabHeight,tabPad,sidePadding,menuBorder
 int tabWidth;
 
+
 const int buttonParameters[3] = { 30, 30, 4 };//, GREENYELLOW, ORANGE}; //buttonHeight, buttonWidth, radiusButCorner, butColour, butActiveColour
-const unsigned int buttonColour = GREENYELLOW;
+const unsigned int buttonColour = LIGHTGREY; //GREENYELLOW;
 const unsigned int buttonActiveColour = ORANGE;
 
 
-int xCentre = tft.height() / 2;
-int yCentre = ((tft.width() + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
+int xCentre = (tft.height() / 2);
+int yCentre = ((tft.width() + turntableParameters[1] +  tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
 int turnTablePos = yCentre;
 
 //    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
@@ -193,6 +196,10 @@ void startup()
 {
 	MenuTabs(0);
 	drawMenuFrame();
+	drawTurntable();
+	createTrackButtons();
+	createFunctionbuttons();
+	printArrayToSerial();
 	delay(3000);
 }
 //    >>>>    FINISH    --------------------------------   SETUP    --------------------------------
@@ -209,7 +216,7 @@ void loop()
 	pinMode(XM, OUTPUT);
 	pinMode(YP, OUTPUT);
 	//pinMode(YM, OUTPUT); 
-		
+
 	if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
 	{
 		translateLCD(p.x, p.y);
@@ -224,7 +231,7 @@ void loop()
 			storeKeyPress = selectedButton;
 		}
 	}
-	
+
 }
 
 //    >>>>    FINISH    ---------------------------------   LOOP   ---------------------------------
@@ -352,16 +359,22 @@ stepperTimer();
 
 void drawAll(boolean calibrationMode)
 {
-	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0], GREY);
-	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0] - 4, BLACK);
+	drawTurntable();
 	drawTurntableBridge(0, true);
 	drawTracks(calibrationMode);
-	drawTracks(true);
+	drawTracks(true);	
 
 #ifdef DEBUG
-	printArrayToSerial(); 
+	printArrayToSerial();
 #endif // DEBUG
 
+	drawButtons(3);
+}
+
+void drawTurntable()
+{
+	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0], GREY);
+	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0] - 4, BLACK);
 }
 
 void drawTurntableBridge(int angle, boolean show)
@@ -416,15 +429,15 @@ void drawTracks(boolean isTrackCalibration)
 		t = 0;
 	}
 	int trackArray = sizeof(PositionTrack) / sizeof(PositionTrack[0]);
-	
+
 	for (int i = t; i < trackArray; i++)
 	{
 		int adjAngle = correctAngle(convertStepDeg(PositionTrack[i], false));
 		int innerTrackRad = turntableParameters[0];
 		int outerTrackRad = turntableParameters[0] + turntableParameters[2];
-		drawTrackLine(adjAngle, adjAngle, innerTrackRad, outerTrackRad, turntableParameters[3]-1, GREY);
-		drawTrackLine(adjAngle, adjAngle, innerTrackRad, outerTrackRad, -(turntableParameters[3]-1), GREY);
-		createTrackButtons(i, buttonTextArray[i + tabParameters[0]], adjAngle, outerTrackRad + (buttonParameters[0]/2),  false);
+		drawTrackLine(adjAngle, adjAngle, innerTrackRad, outerTrackRad, turntableParameters[3] - 1, GREY);
+		drawTrackLine(adjAngle, adjAngle, innerTrackRad, outerTrackRad, -(turntableParameters[3] - 1), GREY);
+		//drawButtonTracks(i, buttonTextArray[i + tabParameters[0]], adjAngle, outerTrackRad + (buttonParameters[0] / 2), false);
 	}
 }
 //    >>>>    FINISH    ---------------------------   Draw Turntable     ---------------------------
@@ -637,9 +650,12 @@ int touchButton(int tX, int tY)
 		case 2:
 			pH = buttonParameters[0];
 			pW = buttonParameters[1];
-		}
+		case 3:
+			pH = buttonParameters[0];
+			pW = buttonParameters[1];
+			}
 
-		if (bt==0)
+		if (bt == 0)
 		{
 			i = arraySize;
 		}
@@ -654,46 +670,136 @@ int touchButton(int tX, int tY)
 	return buttonPressed;
 }
 
-void createTrackButtons(int button, String buttonText, int angle, int buttonRadius , boolean isActive)
+void createTrackButtons()
 {
-	int degPos = angle;
-	//int pX = readButtonArray(buttonText, 1);
-	//int pY = readButtonArray(buttonText, 2);
-	int butColour = buttonColour;
-	
-	int tX = findX(xCentre, buttonRadius, degPos);
-	int tY = findY(yCentre, buttonRadius, degPos);
+	int trackArray = sizeof(PositionTrack) / sizeof(PositionTrack[0]);
 
-	int pX = tX - (buttonParameters[1] / 2);
-	int pY = tY - (buttonParameters[0] / 2);
+	for (int i = 0; i < trackArray; i++)
+	{	
 
-	if (readButtonArray(buttonText, 1) == 0 )
-	{
+		int degPos = correctAngle(convertStepDeg(PositionTrack[i], false));
+		int buttonRadius = turntableParameters[0] + turntableParameters[2] + (buttonParameters[0] / 2);
+		int pX = 0;
+		int pY = 0;
+
+		if (i == 0)
+		{
+			pX = findX(xCentre, turntableParameters[0] + buttonParameters[2] + tabParameters[4], degPos) - (buttonParameters[1] / 2);
+			pY = findY(yCentre, turntableParameters[0] + buttonParameters[2] + tabParameters[4]*2, degPos) - (buttonParameters[0] / 2);
+		}
+		else 
+		{
+			pX = findX(xCentre, buttonRadius, degPos) - (buttonParameters[1] / 2);
+			pY = findY(yCentre, buttonRadius, degPos) - (buttonParameters[0] / 2);
+		}
+
+		String buttonText = buttonTextArray[i + tabParameters[0]];
 		writeButtonArray(buttonText, pX, pY, 2);
-	}
 
 #ifdef DEBUG
-//	drawTrackLine(degPos, degPos, turntableParameters[0], buttonRadius, 0, ORANGE);
-//	tft.drawCircle(offsetX, offsetY, 2, ORANGE);
-//	Serial.println("pX = " + String(offsetX) + "| pY = " + String(offsetY) + "| Width " + String(buttonParameters[0]) + "| Height = " + String(buttonParameters[1]) + "| Colour  " + String(butColour));
-#endif // DEBUG
+		tft.drawCircle(pX, pY, 3, ORANGE);
+#endif //DEBUG
+	}
+}
 
-	tft.fillRoundRect(pX, pY, buttonParameters[0], buttonParameters[1], buttonParameters[2], butColour);
-	tft.setCursor(pX + 7 , pY + 17);
-	tft.setTextColor(BLACK);
-	tft.setFont(&FreeSansBold12pt7b);
-	tft.print(buttonText);
-	tft.setFont();
-/*
+void createFunctionbuttons()
+{
+#ifdef DEBUG
+	tft.drawCircle(xCentre, 40, 2, RED);
+	tft.drawCircle(40, 40, 3, ORANGE);
+	tft.drawCircle(40 + 40, 40, 3, ORANGE);
+	tft.drawCircle(tft.width() - 40 - buttonParameters[0], 40, 3, ORANGE);
+	tft.drawCircle(tft.width() -  (40 + 40)-buttonParameters[0], 40, 3, ORANGE);
+	tft.drawCircle(tft.width() - buttonParameters[0] - tabParameters[4]*2, tft.height() - buttonParameters[0] - tabParameters[4]*2, 3, ORANGE);
+#endif //DEBUG
 
+	writeButtonArray("<<",40, 40, 3);
+	writeButtonArray("<", 80, 40, 3);
+	writeButtonArray(">>", tft.width() - 40 - buttonParameters[0], 40, 3);
+	writeButtonArray(">", tft.width() - (40 + 40) - buttonParameters[0], 40, 3);
+	writeButtonArray(">", tft.width() - (40 + 40) - buttonParameters[0], 40, 3);
+	writeButtonArray("Save", tft.width() - buttonParameters[0] - tabParameters[4]*2, tft.height() - buttonParameters[0] - tabParameters[4]*2, 3);
+}
 
+void drawButtons(int butttonPage)
+{
+	int butColour = buttonColour;
+	int minArray;
+	int maxArray;
+	int cursorX = 6;
+	int cursorY = 17;
 
-	tft.setCursor(pX + (buttonParameters[0] / 3), pY + (buttonParameters[1] / 3));
-	//tft.setFont(&TurnButtonsRobotoBold10pt7b);
-	tft.setTextColor(BLACK);
-	tft.print(buttonText);
-	tft.setFont();
+	/*
+	int manualArray[] = { 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 };
+	int calibrateArray[] = { 4 };
+	int programArray[] = { 4, 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14, 15 };
 */
+
+	switch (butttonPage)
+	{
+	case 1:
+		minArray = 5;
+		maxArray = 14;
+		break;
+	case 2:
+		minArray = 4;
+		maxArray = 4;
+		break;
+	case 3:
+		minArray = 4;
+		maxArray = 15;
+		break;
+	}
+
+	for (int i = minArray; i < maxArray + 1; i++)
+	{
+		int pX = readButtonArray(buttonTextArray[i], 1);
+		int pY = readButtonArray(buttonTextArray[i], 2);
+		int bT = readButtonArray(buttonTextArray[i], 3);
+		String buttonText = buttonTextArray[i];
+
+#ifdef DEBUG
+		Serial.println("X: " + String(pX) + " Y: " + String(pY) + " T: " + String(bT) + " N: " + String(buttonText));
+#endif //DEBUG
+
+
+
+
+
+
+		if (bT == 3)
+		{
+			butColour = GREENYELLOW;
+		}
+
+
+
+		if (buttonTextArray[i] == "C")
+		{
+			butColour = YELLOW;
+		}
+
+		if (buttonTextArray[i] == "<<" || buttonTextArray[i] == ">>")
+		{
+			cursorX = 1;
+			cursorY = 14;
+
+		}
+
+		if (buttonTextArray[i] == "<" || buttonTextArray[i] == ">")
+		{
+			cursorX = 7;
+			cursorY = 14;
+			butColour = MIDGREEN;
+		}
+		tft.fillRoundRect(pX, pY, buttonParameters[0], buttonParameters[1], buttonParameters[2], butColour);
+
+		tft.setCursor(pX + cursorX, pY + cursorY);		
+		tft.setTextColor(BLACK);
+		tft.setFont(&FreeSansBold12pt7b);
+		tft.print(buttonText);
+		tft.setFont();
+	}
 }
 
 void writeButtonArray(String buttonText, int pX, int pY, int bt)
@@ -716,7 +822,7 @@ void writeButtonArray(String buttonText, int pX, int pY, int bt)
 
 #ifdef DEBUG
 
-								 //Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
+ //Serial.println("Tab: " + String(arrayPos) + " X: " + String(buttonArrayX[arrayPos]) + " Y: " + String(buttonArrayY[arrayPos]) + " H: " + String(buttonArrayT[arrayPos]));
 
 #endif // DEBUG
 }
