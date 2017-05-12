@@ -783,7 +783,6 @@ void drawButtons(int butttonPage)
 		{
 			cursorX = 1;
 			cursorY = 14;
-
 		}
 
 		if (buttonTextArray[i] == "<" || buttonTextArray[i] == ">")
