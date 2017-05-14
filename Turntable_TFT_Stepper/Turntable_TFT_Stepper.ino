@@ -24,9 +24,10 @@ Author:  jimsanderson
 //#include <SPI.h>
 //#include <TFT_Extension.h>
 
-#include <Fonts/FreeSansBold9pt7b.h>
-#include <Fonts/FreeSansBold12pt7b.h>
-#include <Fonts/webdings12pt7b.h>
+//#include <Fonts/FreeSansBold9pt7b.h>
+//#include <Fonts/FreeSansBold12pt7b.h>
+//#include <Fonts/GillSans12pt7b.h>
+#include <Fonts/GillSansMTBold12pt7b.h>
 
 #include <DCC_Decoder.h>
 #include <EEPROM.h>
@@ -136,7 +137,7 @@ const int buttonArraySize = 16;
 int buttonArrayX[buttonArraySize];
 int buttonArrayY[buttonArraySize];
 int buttonArrayT[buttonArraySize] = { 1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2 };
-String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","Save" };
+String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","~" };
 
 const int tabParameters[5] = { 4, 20, 3, 14, 6 }; //tabs,tabHeight,tabPad,sidePadding,menuBorder
 int tabWidth;
@@ -379,6 +380,7 @@ void drawAll(boolean calibrationMode)
 void drawTurntable()
 {
 	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0], GREY);
+
 	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0] - 4, BLACK);
 }
 
@@ -399,7 +401,7 @@ void drawTurntableBridge(int angle, boolean show)
 	int bot2 = (((360 - turntableParameters[3]) + adjAngle) - 180);
 
 	int innerTurnRad = turntableParameters[0] - turntableParameters[4];
-
+	tft.drawCircle(xCentre, turnTablePos, 3, GREY);
 	drawTrackLine(top1, top2, innerTurnRad, innerTurnRad, 0, dispCol);
 	drawTrackLine(bot1, bot2, innerTurnRad, innerTurnRad, 0, dispCol);
 	drawTrackLine(top1, bot1, innerTurnRad, innerTurnRad, 0, dispCol);
@@ -724,7 +726,7 @@ void createFunctionbuttons()
 	writeButtonArray("<", spacer1 + spacer2, 40, 3);
 	writeButtonArray(">>", tft.width() - spacer1 - buttonParameters[0], 40, 3);
 	writeButtonArray(">", tft.width() - (spacer1 + spacer2) - buttonParameters[0], 40, 3);
-	writeButtonArray("Save", tft.width() - buttonParameters[0] - tabParameters[4]*2, tft.height() - buttonParameters[0] - tabParameters[4]*2, 3);
+	writeButtonArray("~", tft.width() - buttonParameters[0] - tabParameters[4]*2, tft.height() - buttonParameters[0] - tabParameters[4]*2, 3);
 }
 
 void drawButtons(int butttonPage, boolean reset)
@@ -736,7 +738,7 @@ void drawButtons(int butttonPage, boolean reset)
 	int cursorY = 17;
 
 	/*
-	String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","Save" };
+	String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","~" };
 	int manualArray[] = { 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 };
 	int calibrateArray[] = { 4 };
 	int programArray[] = { 4, 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14, 15 };
@@ -784,19 +786,17 @@ void drawButtons(int butttonPage, boolean reset)
 		if (buttonTextArray[i] == "<<" || buttonTextArray[i] == ">>")
 		{
 			cursorX = 1;
-			cursorY = 14;
 		}
 
 		if (buttonTextArray[i] == "<" || buttonTextArray[i] == ">")
 		{
 			cursorX = 7;
-			cursorY = 14;
 			butColour = MIDGREEN;
 		}
-		if (buttonTextArray[i] == "Save")
+		if (buttonTextArray[i] == "~")
 		{
-			cursorX = 1;
-			cursorY = 14;
+			cursorX = 3;
+			cursorY = 15;
 			butColour = ORANGE;
 
 		}
@@ -804,38 +804,12 @@ void drawButtons(int butttonPage, boolean reset)
 		if (reset == true) butColour = BLACK;
 
 		tft.fillRoundRect(pX, pY, buttonParameters[0], buttonParameters[1], buttonParameters[2], butColour);
-
-		tft.setCursor(pX + cursorX, pY + cursorY);		
-		tft.setTextColor(BLACK);
-
-		/*
-		String buttonTextArray[buttonArraySize] = { "AutoDCC", "Manual", "Calibrate", "Program", "C", "1", "2", "3", "4", "5", "6", "<<", "<", ">>", ">","Save" };
-		int manualArray[] = { 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14 };
-		int calibrateArray[] = { 4 };
-		int programArray[] = { 4, 5 , 6 , 7 , 8 , 9 , 10 , 11 , 12 , 13 , 14, 15 };
-		*/
-		tft.fillRoundRect(pX, pY, buttonParameters[0], buttonParameters[1], buttonParameters[2], butColour);
 		tft.setCursor(pX + cursorX, pY + cursorY);
 		tft.setTextColor(BLACK);
+		//tft.setFont(&FreeSansBold12pt7b);
+		tft.setFont(&GillSansMTBold12pt7b);
+		tft.print(buttonText);
 
-		switch (i)
-		{
-		case 15: //"Save"
-			//buttonText = "<";
-			//tft.setFont();
-			//tft.setTextSize(2);
-			//tft.print((char)250);
-			//buttonText = "<";
-			tft.setFont(&FreeSansBold9pt7b);
-			tft.print("OK");
-
-			
-			break;
-		default:
-			tft.setFont(&FreeSansBold12pt7b);
-			tft.print(buttonText);
-			break;
-		}
 		tft.setFont();
 	}
 }
@@ -1170,11 +1144,11 @@ void printArrayToSerial()
 void printAllFontCharacters()
 {
 	tft.fillScreen(BLACK);
-	tft.setFont();
+	tft.setFont(&GillSansMTBold12pt7b);
 	tft.setTextWrap(true);
 	//tft.setFont(&Symbols12pt7b);
 	//tft.setFont(&FreeSansBold9pt7b);
-	tft.setTextSize(2);
+	//tft.setTextSize(2);
 	for (int i = 0; i < 256; i++)
 	{
 		tft.setTextColor(WHITE);
