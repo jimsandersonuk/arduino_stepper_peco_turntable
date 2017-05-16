@@ -1257,6 +1257,28 @@ void stepperTimer() //  Stepper Timer sub routine this runs from the main loop. 
 	}
 }
 
+void fakeTurnMove(int fakeMove)
+{
+	if (displayRotatingCW) { currentTrack = fakeMove + 1; }
+	else { currentTrack = fakeMove - 1; }
+
+	if (currentTrack < 1) { currentTrack = 6; }
+	else if (currentTrack > 6) { currentTrack = 1; }
+
+	String str1 = String(F("Moving: "));
+	String str2 = String(storeStartTrack);
+	String str3 = String(F(" to "));
+	String str4 = String(storeTargetTrack);
+
+	String lcdRowA = str1 + str2 + str3 + str4;
+	delay(1000);
+
+	String str5 = String(F("Track:"));
+	String str6 = String(currentTrack);
+	String lcdRowB = str5 + str6;
+	displayOutput(false, lcdRowA, lcdRowB);
+}
+
 //    <<<<    FINISH    ---------------------------    Stepper Voids     ---------------------------
 
 //    >>>>    START     -----------------------   Test Screen Calibration    -----------------------
