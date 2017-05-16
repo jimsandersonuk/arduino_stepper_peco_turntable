@@ -86,8 +86,9 @@ int PositionTrack[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 }; //{ 0, 0, 0, 0, 
 int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };
 #endif // DEBUG 
 
-int selectedTracks[2] = { 0, 0 };
+//int selectedTracks[2] = { 0, 0 };
 
+int selectedTracks[2] = { 1, 4 };
 //  Calibration Array
 int sensorVal = digitalRead(3);         // enable Hall-effect Sensor on Pin 3
 int arrayCalibrate[5] = { 0, 0, 0, 0, 0 };   // Array to pass in calibration run results
@@ -128,7 +129,7 @@ const int  totalSteps = 200 * 16;		//number of steps for a full rotation
 
 int menuPage = 0;
 int storeKeyPress;
-const int turntableParameters[5] = { 60, 25, 25, 5, 8 };	//radiusTurntable, turntableOffset, lengthTrack, trackWidth, inner radius
+const int turntableParameters[5] = { 60, 15, 25, 5, 8 };	//radiusTurntable, turntableOffset, lengthTrack, trackWidth, inner radius
 
 int refactorX = 0;
 int refactorY = 0;
@@ -203,6 +204,11 @@ void startup()
 	createTrackButtons();
 	createFunctionbuttons();
 	printArrayToSerial();
+	drawTracks(true);
+	drawTurntablePath();
+
+	//tft.drawRect( buttonParameters[0] + (tabParameters[4] * 2), tft.height() - 5 - buttonParameters[1] - (tabParameters[4] * 2), tft.width() - ((buttonParameters[0]  + 10) * 2),20,WHITE);
+	drawTextField();
 	delay(3000);
 }
 //    >>>>    FINISH    --------------------------------   SETUP    --------------------------------
@@ -401,14 +407,15 @@ void drawTurntableBridge(int angle, boolean show)
 	int bot2 = (((360 - turntableParameters[3]) + adjAngle) - 180);
 
 	int innerTurnRad = turntableParameters[0] - turntableParameters[4];
+
 	tft.drawCircle(xCentre, turnTablePos, 3, GREY);
 	drawTrackLine(top1, top2, innerTurnRad, innerTurnRad, 0, dispCol);
 	drawTrackLine(bot1, bot2, innerTurnRad, innerTurnRad, 0, dispCol);
 	drawTrackLine(top1, bot1, innerTurnRad, innerTurnRad, 0, dispCol);
 	drawTrackLine(top2, bot2, innerTurnRad, innerTurnRad, 0, dispCol);
 
-	drawMarker(adjAngle, innerTurnRad - 4, 2, dispCol1);
-	drawMarker(adjAngle - 180, innerTurnRad - 4, 2, dispCol2);
+	drawMarker(adjAngle, innerTurnRad - 4, 2, dispCol1,true);
+	drawMarker(adjAngle - 180, innerTurnRad - 4, 2, dispCol2, true);
 }
 
 void drawTrackLine(int p1, int p2, int radius1, int radius2, int offset, int colour)
@@ -420,11 +427,15 @@ void drawTrackLine(int p1, int p2, int radius1, int radius2, int offset, int col
 	tft.drawLine(aX, aY + offset, bX, bY + offset, colour);
 }
 
-void drawMarker(int p1, int radius1, int size, int colour)
+void drawMarker(int p1, int radius1, int size, int colour, boolean fill)
 {
 	int aX = findX(xCentre, radius1, p1);
 	int aY = findY(turnTablePos, radius1, p1);
-	tft.fillCircle(aX, aY, size, colour);
+	
+	if (fill == true)
+		tft.fillCircle(aX, aY, size, colour);
+	else
+		tft.drawCircle(aX, aY, size, colour);
 }
 
 void drawTracks(boolean isTrackCalibration)
@@ -573,7 +584,7 @@ int findY(int cY, int circleRad, int angle)
 	return cY + circleRad * sin(angle * PI / 180);
 }
 
-float convertStepDeg(float unit, boolean toSteps)
+float convertStepDeg(float unit, boolean toSteps) //toStep = false convert step to deg || true = convert deg to steps 
 {
 	float step = (float(totalSteps) / 360)*unit;
 	float deg = (unit / float(totalSteps) * 360);
@@ -767,6 +778,7 @@ void drawButtons(int butttonPage, boolean reset)
 		int bT = readButtonArray(buttonTextArray[i], 3);
 		String buttonText = buttonTextArray[i];
 
+
 #ifdef DEBUG
 		Serial.println("X: " + String(pX) + " Y: " + String(pY) + " T: " + String(bT) + " N: " + String(buttonText));
 #endif //DEBUG
@@ -797,7 +809,7 @@ void drawButtons(int butttonPage, boolean reset)
 		{
 			cursorX = 3;
 			cursorY = 15;
-			butColour = ORANGE;
+			butColour = YELLOW;
 
 		}
 
@@ -879,11 +891,12 @@ int readButtonArray(String buttonText, int returnValue)
 //    <<<<    FINISH    ---------------    Select And Programme Turntable Tracks     ---------------
 
 //    <<<<    START     ---------------------------    Stepper Voids     ---------------------------
-/*
+
 #ifdef TESTING
 
 int dummyStepper(int dummySteps, int delaySteps)
 {
+
 int dummyStepPosition = 0;
 
 if (delaySteps == 0) { delaySteps = 75; }
@@ -893,8 +906,16 @@ if (delaySteps == 0) { delaySteps = 75; }
 if (dummySteps > 0) { dummyStepPosition = currentStepPosition + 1; }
 else { dummyStepPosition = currentStepPosition - 1; }
 
-if (dummyStepPosition > totalSteps) { dummyStepPosition = 0; }
-if (dummyStepPosition < 0) { dummyStepPosition = totalSteps; }
+if (dummyStepPosition > totalSteps) 
+{ 
+
+	dummyStepPosition = 0; 
+}
+if (dummyStepPosition < 0) 
+{
+
+	dummyStepPosition = totalSteps; 
+}
 
 delay(delaySteps);
 
@@ -915,12 +936,13 @@ int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
 #endif // TESTING
 
 if (getStepsDistance > (totalSteps / 2))
-calcSteps = getStepsDistance - totalSteps;
+	calcSteps = getStepsDistance - totalSteps;
 else if (getStepsDistance < -(totalSteps / 2))
-calcSteps = getStepsDistance + totalSteps;
+		calcSteps = getStepsDistance + totalSteps;
 return calcSteps;
 }
 
+/*
 void doStepperMove()
 {
 
@@ -1180,3 +1202,47 @@ void printAllFontCharacters()
 
 //    >>>>    FINISH    -----------------------   Test Screen Calibration    -----------------------
 
+
+void drawTurntablePath()
+{
+
+	int startAngle = correctAngle(convertStepDeg(PositionTrack[ selectedTracks[0] ], false));
+	int startTrackAngle = convertStepDeg(PositionTrack[selectedTracks[0]], false);
+	int endAngle = convertStepDeg(PositionTrack[selectedTracks[1]], false);
+	//int currentPos = correctAngle(convertStepDeg(currentStepPosition, false));
+	int currentPos = correctAngle(convertStepDeg(500, false));
+
+	int degToTarget = endAngle - startTrackAngle;
+	int innerTurnRad = turntableParameters[0] - turntableParameters[4];
+
+// get direction of turntable
+//in steps to target
+	int degFactor = 20;
+
+	int markersNeeded = degToTarget / degFactor;
+
+	for (int i = 0; i <= (degToTarget / degFactor); i++)
+	{
+		int angle = startAngle + (degFactor * i);
+
+		if (angle > 360) { angle = angle - 360; }
+
+		if(currentPos <= angle)
+
+			drawMarker(angle, innerTurnRad - 4, 3, GREY, true);
+		else
+
+		drawMarker(angle, innerTurnRad - 4, 3, GREY, false);
+	}
+	
+}
+
+void drawTextField()
+{
+	int boxCentre = (tft.width() / 2) - ((tabParameters[4] * 2) + tabParameters[3] + buttonParameters[0]);
+	int height = 15;
+	int pX = xCentre - boxCentre;
+	int pY = tft.height() - (tabParameters[5] * 2) - (height * 2);
+	int width = boxCentre * 2;
+	tft.drawRect(pX, pY, width, height, WHITE);
+}
