@@ -378,7 +378,6 @@ void drawAll(boolean calibrationMode, int currentPos)
 void drawTurntable()
 {
 	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0], GREY);
-
 	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0] - 4, BLACK);
 }
 
@@ -422,7 +421,7 @@ void drawMarker(int p1, int radius1, int size, int colour, boolean fill)
 	int aX = findX(xCentre, radius1, p1);
 	int aY = findY(turnTablePos, radius1, p1);
 
-	if (fill == true)
+	if (fill)
 		tft.fillCircle(aX, aY, size, colour);
 	else
 		tft.drawCircle(aX, aY, size, colour);
@@ -663,15 +662,15 @@ void translateLCD(int tX, int tY)
 void infoTextField(String textInfo)
 {
 	int boxCentre = (tft.width() / 2) - ((tabParameters[4] * 2) + tabParameters[3] + buttonParameters[0]);
-	int height = 15;
+	int height = 18;
 	int pX = xCentre - boxCentre;
-	int pY = tft.height() - (tabParameters[5] * 2) - (height * 2);
+	int pY = tft.height() - (tabParameters[4] * 2) - (height );
 	int width = boxCentre * 2;
 
 #ifdef DEBUG
 	tft.drawRect(pX, pY, width, height, WHITE);
 #endif
-	tft.setCursor(pX + 2, pY + 13);
+	tft.setCursor(pX + 2, pY + 8);
 
 	if (textInfo.length() * 9 <= (width - 5))
 	{
@@ -833,6 +832,7 @@ void drawButtons(int butttonPage, boolean reset)
 		}
 		if (buttonTextArray[i] == "~")
 		{
+			buttonText = "{";
 			cursorX = 3;
 			cursorY = 15;
 			butColour = YELLOW;
@@ -959,7 +959,125 @@ int calcLeastSteps()
 }
 
 //    >>>>    START     ---------------------------    Stepper Voids     ---------------------------
+void displayManualMove(int dispMove) // passes across selected track
+{
+	String lcdRowA, lcdRowB, str1;
 
+	// Set track limits and direction Track 0 not allowed as reference point
+	if (dispMove < 1) { dispMove = 6; }
+	else if (dispMove > 6) { dispMove = 1; }
+
+	if (isTurntableHead) { lcdRowA = String(F("HEAD selected...")); }
+	else { lcdRowA = String(F("TAIL selected...")); }
+
+	isTurntableHeadChanged = isTurntableHead;
+
+	calcLeastSteps(currentTrack, dispMove);
+
+	if (displayRotatingCW) { str1 = String(F("CW: ")); }
+	else { str1 = String(F("CCW: ")); }
+
+	String str2 = String(currentTrack);
+	String str3 = String(F(" to "));
+	String str4 = String(dispMove);
+	lcdRowB = str1 + str2 + str3 + str4;
+
+	displayOutput(false, lcdRowA, lcdRowB);
+}
+
+void moveManualTurntableMain(int manMove)
+{
+	String lcdRowA, lcdRowB;
+	key = 0;
+	do
+	{
+		//	newTargetLocation = PositionTrack[manMove];
+		fakeTurnMove(currentTrack);
+	} while (storeTargetTrack != currentTrack);
+
+	currentTrack = newTrack;
+	String str1 = String(F("Reached Track "));
+	String str2 = String(currentTrack);
+	lcdRowA = str1 + str2;
+	//lcdRowB = ("UP=Exit	L/R=New"));
+	//displayOutput(false,lcdRowA, lcdRowB);
+
+	// 		Arduino only
+	lcd.setCursor(0, 1);
+	lcd.write(byte(6));
+	lcd.print(" =Exit New= ");
+	lcd.write(byte(2));
+	lcd.print("|");
+	lcd.write(byte(3));
+
+	delay(50);
+
+	do
+	{
+		keyPadState();
+		if (key == 3 || key == 4) { resetMenu(0, 1); }			// Pressed Up or Down
+		else if (key == 2 || key == 5) { stayInMenu = false; }	// Pressed Left or Right
+	} while (stayInMenu);
+}	void displayManualMove(int dispMove) // passes across selected track
+{
+	String lcdRowA, lcdRowB, str1;
+
+	// Set track limits and direction Track 0 not allowed as reference point
+	if (dispMove < 1) { dispMove = 6; }
+	else if (dispMove > 6) { dispMove = 1; }
+
+	if (isTurntableHead) { lcdRowA = String(F("HEAD selected...")); }
+	else { lcdRowA = String(F("TAIL selected...")); }
+
+	isTurntableHeadChanged = isTurntableHead;
+
+	calcLeastSteps(currentTrack, dispMove);
+
+	if (displayRotatingCW) { str1 = String(F("CW: ")); }
+	else { str1 = String(F("CCW: ")); }
+
+	String str2 = String(currentTrack);
+	String str3 = String(F(" to "));
+	String str4 = String(dispMove);
+	lcdRowB = str1 + str2 + str3 + str4;
+
+	displayOutput(false, lcdRowA, lcdRowB);
+}
+
+void moveManualTurntableMain(int manMove)
+{
+	String lcdRowA, lcdRowB;
+	key = 0;
+	do
+	{
+		//	newTargetLocation = PositionTrack[manMove];
+		fakeTurnMove(currentTrack);
+	} while (storeTargetTrack != currentTrack);
+
+	currentTrack = newTrack;
+	String str1 = String(F("Reached Track "));
+	String str2 = String(currentTrack);
+	lcdRowA = str1 + str2;
+	//lcdRowB = ("UP=Exit	L/R=New"));
+	//displayOutput(false,lcdRowA, lcdRowB);
+
+	// 		Arduino only
+	lcd.setCursor(0, 1);
+	lcd.write(byte(6));
+	lcd.print(" =Exit New= ");
+	lcd.write(byte(2));
+	lcd.print("|");
+	lcd.write(byte(3));
+
+	delay(50);
+
+	do
+	{
+		keyPadState();
+		if (key == 3 || key == 4) { resetMenu(0, 1); }			// Pressed Up or Down
+		else if (key == 2 || key == 5) { stayInMenu = false; }	// Pressed Left or Right
+	} while (stayInMenu);
+}
 void doStepperMove()
 {
 	//      stepper.run();  // Run the Stepper Motor
