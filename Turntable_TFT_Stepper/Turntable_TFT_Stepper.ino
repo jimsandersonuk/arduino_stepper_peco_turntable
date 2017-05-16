@@ -105,6 +105,7 @@ boolean isTurntableHead = true;
 boolean isTurntableHeadChanged = true;
 boolean isReleased = false;
 boolean displayRotatingCW = false;
+int headPosition = 0;
 int currentFunction = 0; // "AutoDCC", "Manual", "Calibrate", "Program"
 const int displayRotateDelay = 5;   // This is the minimum delay in ms between steps of the stepper motor
 boolean displayRotating = false;    // Is the "Display Rotate" function enabled?
@@ -360,10 +361,10 @@ void autoDCCMode()
 
 //    >>>>    START     ---------------------------   Draw Turntable     ---------------------------
 
-void drawAll(boolean calibrationMode)
+void drawAll(boolean calibrationMode, int currentPos)
 {
 	drawTurntable();
-	drawTurntableBridge(0, true);
+	drawTurntableBridge(currentPos, true);
 	drawTracks(calibrationMode);
 	drawTracks(true);
 
@@ -528,7 +529,8 @@ void decideButtonAction(int buttonPress)
 			break;
 		case 1:
 			currentFunction = 1;
-			drawAll(false);
+			drawAll(false, 0 );
+			// TODO: work out moving steepper
 			break;
 		case 2:
 			currentFunction = 2;
@@ -545,6 +547,12 @@ void decideButtonAction(int buttonPress)
 		case 0:
 			break;
 		case 1:
+			// TODO: work out moving steepper
+			if (buttonPress >= 5 && buttonPress <= 10)
+			{
+				//Set Head
+
+			}
 			break;
 		case 2:
 			break;
@@ -784,7 +792,7 @@ void drawButtons(int butttonPage, boolean reset)
 	{
 	case 1:
 		minArray = 5;
-		maxArray = 14;
+		maxArray = 10;
 		break;
 	case 2:
 		minArray = 4;
@@ -922,11 +930,9 @@ int dummyStepper(int dummySteps, int delaySteps)
 	else
 		dummyStepPosition = currentStepPosition - 1;
 
-	if (dummyStepPosition > totalSteps)
-		dummyStepPosition = 0;
+	if (dummyStepPosition > totalSteps) dummyStepPosition = 0;
 
-	if (dummyStepPosition < 0)
-		dummyStepPosition = totalSteps;
+	if (dummyStepPosition < 0)	dummyStepPosition = totalSteps;
 
 	delay(delaySteps);
 	distanceToGo = selectedTracks[1] - currentStepPosition;
@@ -973,7 +979,7 @@ void doStepperMove()
 	{
 		if ((!isInMotion) && (!newTargetSet))
 		{
-#ifdef DEBUG
+#ifdef TESTING
 			Serial.println(String(F("Not Moving!  DtG: ")) + String(distanceToGo));
 			Serial.println(String(F(" TP: ")) + String(selectedTracks[1]));
 			Serial.println(String(F(" CP: ")) + String(currentStepPosition));
@@ -997,10 +1003,10 @@ void doStepperMove()
 	}
 	else
 	{
-#ifdef DEBUG
+#ifdef TESTING
 		if ((currentStepPosition % totalSteps) == 0)
 			Serial.println(String(F("Current location: ")) + String(currentStepPosition));       //setCurrentPosition seems to always reset the position to 0, ignoring the parameter
-#endif // DEBUG
+#endif // TESTING
 
 #ifdef MOTORSHIELD
 		if ((stepper.currentPosition() % totalSteps) == 0)
@@ -1034,7 +1040,7 @@ void SetStepperTargetLocation()
 
 #ifdef TESTING
 		int mainDiff = newTargetLoc - currentStepPosition;
-#endif // DEBUG
+#endif // TESTING
 
 #ifdef MOTORSHIELD
 		int mainDiff = newTargetLoc - stepper.currentPosition();
@@ -1051,7 +1057,7 @@ void SetStepperTargetLocation()
 		}
 #ifdef TESTING
 		dummyStepper(mainDiff, 0);
-#endif // DEBUG
+#endif // TESTING
 
 #ifdef MOTORSHIELD
 		stepper.move(mainDiff);
@@ -1068,7 +1074,7 @@ void stepperTimer() //  Stepper Timer sub routine this runs from the main loop. 
 
 #ifdef TESTING
 	boolean isInMotion = (abs(distanceToGo) > 0);
-#endif // DEBUG
+#endif // TESTING
 
 #ifdef MOTORSHIELD
 	//Run the Stepper Motor
@@ -1102,7 +1108,7 @@ void stepperTimer() //  Stepper Timer sub routine this runs from the main loop. 
 					dummyStepper(currentLoc, 0);
 				}
 			}
-#endif // DEBUG
+#endif // TESTING
 
 #ifdef MOTORSHIELD
 			if (!isReleased)
