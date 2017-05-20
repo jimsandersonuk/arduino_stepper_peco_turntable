@@ -26,6 +26,4 @@ C:\Users\Workshop_General\AppData\Local\Temp\VMBuilds\Turntable_TFT_Stepper\uno\
  C:\Users\Workshop_General\Documents\Arduino\libraries\TouchScreen/TouchScreen.h \
  C:\Users\Workshop_General\Documents\Arduino\libraries\Adafruit_GFX_Library/Fonts/GillSansMT9pt7b.h \
  C:\Users\Workshop_General\Documents\Arduino\libraries\Adafruit_GFX_Library/Fonts/GillSansMTBold12pt7b.h \
- C:\Users\Workshop_General\Documents\Arduino\libraries\DCC_Decoder/DCC_Decoder.h \
- C:\Program\ Files\ (x86)\Arduino\hardware\arduino\avr\libraries\EEPROM\src/EEPROM.h \
  C:\Program\ Files\ (x86)\Microsoft\ Visual\ Studio\ 14.0\Common7\IDE\Extensions\ik4sbpth.ith\Micro\ Platforms\default\debuggers\VM_DBG/VM_DBG.h

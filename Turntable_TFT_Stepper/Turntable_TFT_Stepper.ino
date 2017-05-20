@@ -5,11 +5,16 @@ Author:  jimsanderson
 */
 
 #define DEBUG
-#define TESTING
-//#define MOTORSHIELD
 
 #ifdef DEBUG
+#define TESTING
+//#define VIEWFONT
 #include <SoftwareSerial.h>
+#else
+#define DCC
+#define MOTORSHIELD
+#include <DCC_Decoder.h>
+#include <EEPROM.h>
 #endif
 
 #include <AccelStepper.h>
@@ -24,13 +29,11 @@ Author:  jimsanderson
 //#include <SPI.h>
 //#include <TFT_Extension.h>
 
-//#include <Fonts/GillSans12pt7b.h>
 #include <Fonts/GillSansMT9pt7b.h>
 #include <Fonts/GillSansMTBold12pt7b.h>
-#include <DCC_Decoder.h>
-#include <EEPROM.h>
 
 #define LCDROTATION 3
+
 //    >>>>    START     ------------------------------   TFT Setup    ------------------------------
 
 #define YP A3  // must be an analog pin, use "An" notation!
@@ -89,7 +92,7 @@ int selectedTracks[2] = { 0, 0 };
 int sensorVal = digitalRead(3);         // enable Hall-effect Sensor on Pin 3
 int arrayCalibrate[5] = { 0, 0, 0, 0, 0 };   // Array to pass in calibration run results
 
-											 // Programme Track Positions
+// Programme Track Positions
 int currentStepPosition = 0;  // current step number
 int storeProgTracks[6] = { 0, 0, 0, 0, 0, 0 };
 boolean chkOverwrite = false;
@@ -105,6 +108,7 @@ boolean isTurntableHead = true;
 boolean isTurntableHeadChanged = true;
 boolean isReleased = false;
 boolean displayRotatingCW = false;
+boolean stayInMenu = true;
 int headPosition = 0;
 int currentFunction = 0; // "AutoDCC", "Manual", "Calibrate", "Program"
 const int displayRotateDelay = 5;   // This is the minimum delay in ms between steps of the stepper motor
@@ -153,7 +157,7 @@ int turnTablePos = yCentre;
 //    >>>>    START     --------------------------   Define DCC Control   --------------------------
 
 #define kDCC_INTERRUPT  0 // Define DCC commands to Arduino
-typedef struct {int address;}
+typedef struct { int address; }
 DCCAccessoryAddress;  // Address to respond to
 DCCAccessoryAddress gAddresses[7]; // Allows 7 DCC addresses: [XX] = number of addresses you need (including 0).
 
@@ -164,17 +168,17 @@ DCCAccessoryAddress gAddresses[7]; // Allows 7 DCC addresses: [XX] = number of a
 Adafruit_MotorShield AFMStop(0x60); // Default address, no jumpers
 Adafruit_StepperMotor *mystepper = AFMStop.getStepper(200, 2);   //Connect stepper with 200 steps per revolution (1.8 degree) to the M3, M4 terminals (blue,yellow,green,red)
 																 //you can change these to SINGLE, DOUBLE, INTERLEAVE or MICROSTEP! wrapper for the motor!(3200 Microsteps / revolution)
-void release2() {mystepper->release();}
+void release2() { mystepper->release(); }
 
-#ifdef TESTING
-int forwardstep2() {return dummyStepper(1, 25);}; //75 real
-int backwardstep2() {return dummyStepper(-1, 25);}; //75 real
-#else
+#ifdef DEBUG
+int forwardstep2() { return dummyStepper(1, 25); }; //75 real
+int backwardstep2() { return dummyStepper(-1, 25); }; //75 real
+#elif MOTORSHIELD
 //void forwardstep2() {mystepper->onestep(FORWARD, MICROSTEP);}
 //void backwardstep2() {mystepper->onestep(BACKWARD, MICROSTEP);}
-//void release2() {mystepper->release();}
+//void release2() { mystepper->release(); }
 //AccelStepper stepper = AccelStepper(forwardstep2, backwardstep2); // wrap the stepper in an AccelStepper object
-#endif // TESTING
+#endif // DEBUG
 
 //    <<<<    FINISH    ----------------------   Adafruit MotorShield Setup   ----------------------
 
@@ -208,38 +212,14 @@ void startup()
 //    >>>>    START     ---------------------------------   LOOP   ---------------------------------
 void loop()
 {
-	digitalWrite(13, HIGH);
-	TSPoint p = ts.getPoint();
-	digitalWrite(13, LOW);
-
-	// if sharing pins, you'll need to fix the directions of the touchscreen pins
-	//pinMode(XP, OUTPUT);
-	pinMode(XM, OUTPUT);
-	pinMode(YP, OUTPUT);
-	//pinMode(YM, OUTPUT);
-
 	//printAllFontCharacters();
-
-	if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
-	{
-		translateLCD(p.x, p.y);
-		int selectedButton = touchButton(refactorX, refactorY);
-
-		if (selectedButton != storeKeyPress)
-		{
-#ifdef DEBUG
-			Serial.println(selectedButton);
-#endif
-			decideButtonAction(selectedButton);
-			storeKeyPress = selectedButton;
-		}
-	}
+	buttonPress();
 }
 
 //    >>>>    FINISH    ---------------------------------   LOOP   ---------------------------------
 
 //    >>>>    START     --------------------------    EEPROM Commands     --------------------------
-
+#ifdef DCC
 void EEPROMWritelong(int address, int value)
 {
 	if (currentFunction == 2)
@@ -356,7 +336,7 @@ void autoDCCMode()
 
 	stepperTimer();
 }
-
+#endif //DCC
 //    <<<<    FINISH    -------------------------    DCC Decoder Setup     -------------------------
 
 //    >>>>    START     ---------------------------   Draw Turntable     ---------------------------
@@ -520,6 +500,7 @@ void decideButtonAction(int buttonPress)
 
 	if (buttonPress < tabParameters[0])
 	{
+		stayInMenu = false;
 		currentFunction = 0;
 		MenuTabs(buttonPress);
 		switch (buttonPress)
@@ -528,7 +509,7 @@ void decideButtonAction(int buttonPress)
 			break;
 		case 1:
 			currentFunction = 1;
-			drawAll(false, 0 );
+			drawAll(false, 0);
 			// TODO: work out moving steepper
 			break;
 		case 2:
@@ -541,6 +522,7 @@ void decideButtonAction(int buttonPress)
 	}
 	if (buttonPress >= tabParameters[0])
 	{
+		stayInMenu = true;
 		switch (menuPage)
 		{
 		case 0:
@@ -622,6 +604,7 @@ int correctAngle(int angle)
 	//Serial.println(adjAngle);
 	return adjAngle;
 }
+
 //    >>>>    FINISH    ---------------------------   Calculate Points   ---------------------------
 
 //    >>>>    START     ----------------------   Translate Lcd Touchscreen    ----------------------
@@ -664,7 +647,7 @@ void infoTextField(String textInfo)
 	int boxCentre = (tft.width() / 2) - ((tabParameters[4] * 2) + tabParameters[3] + buttonParameters[0]);
 	int height = 18;
 	int pX = xCentre - boxCentre;
-	int pY = tft.height() - (tabParameters[4] * 2) - (height );
+	int pY = tft.height() - (tabParameters[4] * 2) - (height);
 	int width = boxCentre * 2;
 
 #ifdef DEBUG
@@ -686,9 +669,39 @@ void resetFont()
 	tft.setTextColor(BLACK);
 	tft.setFont();
 }
+
 //    >>>>    FINISH    -----------------------   Display Text Information   -----------------------
 
 //    >>>>    START     -------------------------   Button Calculations    -------------------------
+
+void buttonPress()
+{
+
+	digitalWrite(13, HIGH);
+	TSPoint p = ts.getPoint();
+	digitalWrite(13, LOW);
+
+	// if sharing pins, you'll need to fix the directions of the touchscreen pins
+	//pinMode(XP, OUTPUT);
+	pinMode(XM, OUTPUT);
+	pinMode(YP, OUTPUT);
+	//pinMode(YM, OUTPUT);
+
+	if (p.z > MINPRESSURE && p.z < MAXPRESSURE)
+	{
+		translateLCD(p.x, p.y);
+		int selectedButton = touchButton(refactorX, refactorY);
+
+		if (selectedButton != storeKeyPress)
+		{
+#ifdef DEBUG
+			Serial.println(selectedButton);
+#endif
+			decideButtonAction(selectedButton);
+			storeKeyPress = selectedButton;
+		}
+	}
+}
 
 int touchButton(int tX, int tY)
 {
@@ -914,6 +927,97 @@ int readButtonArray(String buttonText, int returnValue)
 
 //    <<<<    START     ---------------------------    Stepper Voids     ---------------------------
 
+int calcLeastSteps()
+{
+	int calcSteps = 0;
+#ifdef TESTING
+	int getStepsDistance = selectedTracks[1] - currentStepPosition;
+#else
+	int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
+#endif // TESTING
+
+	if (getStepsDistance > (totalSteps / 2))
+		calcSteps = getStepsDistance - totalSteps;
+	else if (getStepsDistance < -(totalSteps / 2))
+		calcSteps = getStepsDistance + totalSteps;
+	return calcSteps;
+}
+/*
+void moveManualTurntableMain(int manMove)
+{
+	infoTextField(String("Moving to Track " + String(selectedTracks[1])));
+
+	do
+	{
+		fakeTurnMove(selectedTracks[0]);
+
+	} while (PositionTrack[selectedTracks[1]] != currentStepPosition);
+
+	selectedTracks[0] = selectedTracks[1];
+	infoTextField(String("Reached Track " + String(selectedTracks[1])));
+	delay(50);
+
+	do
+	{
+		buttonPress();
+	} while (stayInMenu);
+
+}
+
+void displayManualMove(int dispMove) // passes across selected track
+{
+
+	// Set track limits and direction Track 0 not allowed as reference point
+	if (dispMove < 1) { dispMove = 6; }
+	else if (dispMove > 6) { dispMove = 1; }
+
+	//if (isTurntableHead) { lcdRowA = String(F("HEAD selected...")); }
+	//else { lcdRowA = String(F("TAIL selected...")); }
+
+	isTurntableHeadChanged = isTurntableHead;
+
+	calcLeastSteps();
+
+	if (displayRotatingCW) { str1 = String(F("CW: ")); }
+	else { str1 = String(F("CCW: ")); }
+
+	//String str2 = String(currentTrack);
+	//String str3 = String(F(" to "));
+	//String str4 = String(dispMove);
+	//lcdRowB = str1 + str2 + str3 + str4;
+
+	//displayOutput(false, lcdRowA, lcdRowB);
+
+}
+
+void fakeTurnMove(int fakeMove)
+{
+	int currentTrack = selectedTracks[0];
+
+	if (displayRotatingCW) { currentTrack = fakeMove + 1; }
+	else { currentTrack = fakeMove - 1; }
+
+	if (currentTrack < 1) { currentTrack = 6; }
+	else if (currentTrack > 6) { currentTrack = 1; }
+
+
+	//String str1 = String(F("Moving: "));
+	//String str2 = String(storeStartTrack);
+	//String str3 = String(F(" to "));
+	//String str4 = String(storeTargetTrack);
+	//String lcdRowA = str1 + str2 + str3 + str4;
+
+	delay(1000);
+
+
+	//String str5 = String(F("Track:"));
+	//String str6 = String(currentTrack);
+	//String lcdRowB = str5 + str6;
+	//displayOutput(false, lcdRowA, lcdRowB);
+
+}
+*/
+
 #ifdef TESTING
 
 int dummyStepper(int dummySteps, int delaySteps)
@@ -940,201 +1044,83 @@ int dummyStepper(int dummySteps, int delaySteps)
 	return dummyStepPosition;
 }
 
-#endif // TESTING
-
-int calcLeastSteps()
+void SetStepperTargetLocation()
 {
-	int calcSteps = 0;
-#ifdef TESTING
-	int getStepsDistance = selectedTracks[1] - currentStepPosition;
-#else
-	int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
-#endif // TESTING
+	// Subroutine: SetStepperTargetLocation() Takes the global variables: tableTargetHeadOrTail, and tableTargetPosition,
+	// and sets the stepper object moveTo() target position in steps- inserts values back into "doStepperMove()"
 
-	if (getStepsDistance > (totalSteps / 2))
-		calcSteps = getStepsDistance - totalSteps;
-	else if (getStepsDistance < -(totalSteps / 2))
-		calcSteps = getStepsDistance + totalSteps;
-	return calcSteps;
-}
+	int newTargetLoc = -1;
 
-//    >>>>    START     ---------------------------    Stepper Voids     ---------------------------
-void displayManualMove(int dispMove) // passes across selected track
-{
-	String lcdRowA, lcdRowB, str1;
-
-	// Set track limits and direction Track 0 not allowed as reference point
-	if (dispMove < 1) { dispMove = 6; }
-	else if (dispMove > 6) { dispMove = 1; }
-
-	if (isTurntableHead) { lcdRowA = String(F("HEAD selected...")); }
-	else { lcdRowA = String(F("TAIL selected...")); }
-
-	isTurntableHeadChanged = isTurntableHead;
-
-	calcLeastSteps(currentTrack, dispMove);
-
-	if (displayRotatingCW) { str1 = String(F("CW: ")); }
-	else { str1 = String(F("CCW: ")); }
-
-	String str2 = String(currentTrack);
-	String str3 = String(F(" to "));
-	String str4 = String(dispMove);
-	lcdRowB = str1 + str2 + str3 + str4;
-
-	displayOutput(false, lcdRowA, lcdRowB);
-}
-
-void moveManualTurntableMain(int manMove)
-{
-	String lcdRowA, lcdRowB;
-	key = 0;
-	do
-	{
-		//	newTargetLocation = PositionTrack[manMove];
-		fakeTurnMove(currentTrack);
-	} while (storeTargetTrack != currentTrack);
-
-	currentTrack = newTrack;
-	String str1 = String(F("Reached Track "));
-	String str2 = String(currentTrack);
-	lcdRowA = str1 + str2;
-	//lcdRowB = ("UP=Exit	L/R=New"));
-	//displayOutput(false,lcdRowA, lcdRowB);
-
-	// 		Arduino only
-	lcd.setCursor(0, 1);
-	lcd.write(byte(6));
-	lcd.print(" =Exit New= ");
-	lcd.write(byte(2));
-	lcd.print("|");
-	lcd.write(byte(3));
-
-	delay(50);
-
-	do
-	{
-		keyPadState();
-		if (key == 3 || key == 4) { resetMenu(0, 1); }			// Pressed Up or Down
-		else if (key == 2 || key == 5) { stayInMenu = false; }	// Pressed Left or Right
-	} while (stayInMenu);
-}	void displayManualMove(int dispMove) // passes across selected track
-{
-	String lcdRowA, lcdRowB, str1;
-
-	// Set track limits and direction Track 0 not allowed as reference point
-	if (dispMove < 1) { dispMove = 6; }
-	else if (dispMove > 6) { dispMove = 1; }
-
-	if (isTurntableHead) { lcdRowA = String(F("HEAD selected...")); }
-	else { lcdRowA = String(F("TAIL selected...")); }
-
-	isTurntableHeadChanged = isTurntableHead;
-
-	calcLeastSteps(currentTrack, dispMove);
-
-	if (displayRotatingCW) { str1 = String(F("CW: ")); }
-	else { str1 = String(F("CCW: ")); }
-
-	String str2 = String(currentTrack);
-	String str3 = String(F(" to "));
-	String str4 = String(dispMove);
-	lcdRowB = str1 + str2 + str3 + str4;
-
-	displayOutput(false, lcdRowA, lcdRowB);
-}
-
-void moveManualTurntableMain(int manMove)
-{
-	String lcdRowA, lcdRowB;
-	key = 0;
-	do
-	{
-		//	newTargetLocation = PositionTrack[manMove];
-		fakeTurnMove(currentTrack);
-	} while (storeTargetTrack != currentTrack);
-
-	currentTrack = newTrack;
-	String str1 = String(F("Reached Track "));
-	String str2 = String(currentTrack);
-	lcdRowA = str1 + str2;
-	//lcdRowB = ("UP=Exit	L/R=New"));
-	//displayOutput(false,lcdRowA, lcdRowB);
-
-	// 		Arduino only
-	lcd.setCursor(0, 1);
-	lcd.write(byte(6));
-	lcd.print(" =Exit New= ");
-	lcd.write(byte(2));
-	lcd.print("|");
-	lcd.write(byte(3));
-
-	delay(50);
-
-	do
-	{
-		keyPadState();
-		if (key == 3 || key == 4) { resetMenu(0, 1); }			// Pressed Up or Down
-		else if (key == 2 || key == 5) { stayInMenu = false; }	// Pressed Left or Right
-	} while (stayInMenu);
-}
-void doStepperMove()
-{
-	//      stepper.run();  // Run the Stepper Motor
-	//      boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
-	boolean isInMotion = (abs(distanceToGo) > 0);
-	boolean newTargetSet = false;
-
-	// If there is a new target location, set the target
-	if (newTargetLocation)
-	{
-		SetStepperTargetLocation();
-		//displayOutput("Moving to ", ""));
-		newTargetSet = true;
+	if (isTurntableHead)//use head location variable
+	{ 
+		newTargetLoc = PositionTrack[selectedTracks[0]];
+		inMotionToNewTarget = true;
+	}
+	else//use tail location variable
+	{ 
+		newTargetLoc = PositionTrack[selectedTracks[1]];
+		inMotionToNewTarget = true;
 	}
 
-	if (inMotionToNewTarget)
+	if (newTargetLoc > 0)
 	{
-		if ((!isInMotion) && (!newTargetSet))
+		int mainDiff = newTargetLoc - currentStepPosition;
+		if (mainDiff > (totalSteps / 2)) mainDiff = mainDiff - totalSteps;
+		else if (mainDiff < (-totalSteps / 2)) mainDiff = mainDiff + totalSteps;
+
+		if (mainDiff < 0)
 		{
-#ifdef TESTING
-			Serial.println(String(F("Not Moving!  DtG: ")) + String(distanceToGo));
-			Serial.println(String(F(" TP: ")) + String(selectedTracks[1]));
-			Serial.println(String(F(" CP: ")) + String(currentStepPosition));
-			//Serial.println(String(F(" S: ")) + String(stepper.speed()));
-
-#endif // DEBUG
-
-#ifdef MOTORSHIELD
-			Serial.println(String(F("Not Moving!  DtG: ")) + String(stepper.distanceToGo()));
-			Serial.println(String(F(" TP: ")) + String(stepper.targetPosition());
-			Serial.println(String(F(" CP: ")) + String(stepper.currentPosition()));
-			Serial.println(String(F(" S: ")) + String(stepper.speed()));
-
-#endif // DEBUG
+			mainDiff -= motorOvershoot;
+			overshootDestination = motorOvershoot;
 		}
+		dummyStepper(mainDiff, 0);
+	}
+	newTargetLocation = false;
+}
 
-		//release the brake
-		//  brakeservo.write(servoRelease);
-		//  delay(5);
-		//  inMotionToNewTarget = isInMotion;
+void stepperTimer()
+{
+	int currentLoc = 0;
+	boolean isInMotion = (abs(distanceToGo) > 0);
+
+	//Check if we have any distance to move for release() timeout.	Can check the buffered var isInMotion because we also check the other variables.
+	if (isInMotion)
+	{		
+		stepperLastMoveTime = millis(); //We still have some distance to move, so reset the release timeout
+		isReleased = false;
 	}
 	else
 	{
-#ifdef TESTING
-		if ((currentStepPosition % totalSteps) == 0)
-			Serial.println(String(F("Current location: ")) + String(currentStepPosition));       //setCurrentPosition seems to always reset the position to 0, ignoring the parameter
+		if (!isReleased)
+		{
+			if (overshootDestination > 0)
+			{
+				dummyStepper(overshootDestination, 0);
+				overshootDestination = -1;
+			}
+
+			if (((millis() - stepperLastMoveTime) >= releaseTimeout_ms))
+			{				
+				isReleased = true; //If isReleased, don't release again.
+				Serial.print("Relative Current Position: " + String(currentStepPosition));	//shows position the table thinks it is at (how it got here)
+				currentLoc = currentStepPosition;	// Resets the position to the actual positive number it should be
+				currentLoc = currentStepPosition % totalSteps;
+
+				if (currentLoc < 0) 
+				{ 
+					currentLoc += totalSteps;
+				}
+
+				dummyStepper(currentLoc, 0);
+				Serial.print("Actual Current Position: " + String(currentStepPosition));	// shows the position value corrected.
+			}
+		}
+	}
+}
+
 #endif // TESTING
 
 #ifdef MOTORSHIELD
-		if ((stepper.currentPosition() % totalSteps) == 0)
-			Serial.println(String(F("Current location: ")) + String(stepper.currentPosition())); //setCurrentPosition seems to always reset the position to 0, ignoring the parameter
-#endif // MOTORSHIELD
-	}
-
-	if (mainDiff < 0)     displayRotatingCW = false;
-	else if (mainDiff > 0)     displayRotatingCW = true;
-}
 
 void SetStepperTargetLocation()
 {
@@ -1155,16 +1141,7 @@ void SetStepperTargetLocation()
 
 	if (newTargetLoc > 0)
 	{
-
-#ifdef TESTING
-		int mainDiff = newTargetLoc - currentStepPosition;
-#endif // TESTING
-
-#ifdef MOTORSHIELD
 		int mainDiff = newTargetLoc - stepper.currentPosition();
-#endif // MOTORSHIELD
-
-
 		if (mainDiff > (totalSteps / 2)) mainDiff = mainDiff - totalSteps;
 		else if (mainDiff < (-totalSteps / 2)) mainDiff = mainDiff + totalSteps;
 
@@ -1173,111 +1150,72 @@ void SetStepperTargetLocation()
 			mainDiff -= motorOvershoot;
 			overshootDestination = motorOvershoot;
 		}
-#ifdef TESTING
-		dummyStepper(mainDiff, 0);
-#endif // TESTING
 
-#ifdef MOTORSHIELD
 		stepper.move(mainDiff);
-#endif // MOTORSHIELD
 	}
 
 	//programmingMode = false;
 	newTargetLocation = false;
+
 }
 
-void stepperTimer() //  Stepper Timer sub routine this runs from the main loop. It also supports the release function.
+void stepperTimer()
 {
 	int currentLoc = 0;
 
-#ifdef TESTING
-	boolean isInMotion = (abs(distanceToGo) > 0);
-#endif // TESTING
-
-#ifdef MOTORSHIELD
-	//Run the Stepper Motor
+	// Run the Stepper Motor //
 	stepper.run();
 	boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
-#endif // MOTORSHIELD
 
-	//Check if we have any distance to move for release() timeout.  Can check the buffered var isInMotion because we also check the other variables.
-	if (isInMotion)//if (isInMotion || programmingMode)
-	{	
-		stepperLastMoveTime = millis();//We still have some distance to move, so reset the release timeout
+	//Check if we have any distance to move for release() timeout.	Can check the buffered var isInMotion because we also check the other variables.
+	if (isInMotion || programmingMode)
+	{
+		//We still have some distance to move, so reset the release timeout
+		stepperLastMoveTime = millis();
 		isReleased = false;
 	}
 	else
 	{
-#ifdef TESTING
 		if (!isReleased)
 		{
 			if (overshootDestination > 0)
 			{
-				dummyStepper(overshootDestination, 0);
+
+				stepper.move(overshootDestination);
 				overshootDestination = -1;
-
-				if (((millis() - stepperLastMoveTime) >= releaseTimeout_ms))
-				{
-					isReleased = true; //If isReleased, don't release again.
-					Serial.println(String(F("Relative Current Position: ")) + String(currentStepPosition)); //shows position the table thinks it is at (how it got here)
-					currentLoc = currentStepPosition; // Resets the position to the actual positive number it should be
-					currentLoc = currentLoc % totalSteps;
-					if (currentLoc < 0) currentLoc += totalSteps;
-					dummyStepper(currentLoc, 0);
-				}
 			}
-#endif // TESTING
 
-#ifdef MOTORSHIELD
-			if (!isReleased)
+			if (((millis() - stepperLastMoveTime) >= releaseTimeout_ms))
 			{
-				if (overshootDestination > 0)
-				{
-					stepper.move(overshootDestination);
-					overshootDestination = -1;
+				//If isReleased, don't release again.
+				isReleased = true;
+				Serial.print("Relative Current Position: " + String(stepper.currentPosition()));	//shows position the table thinks it is at (how it got here)
 
-					if (((millis() - stepperLastMoveTime) >= releaseTimeout_ms))
-					{
-						isReleased = true; //If isReleased, don't release again.
+				int currentLoc = stepper.currentPosition();	// Resets the position to the actual positive number it should be
+				currentLoc = currentLoc % totalSteps;
 
-						Serial.println(String(stepper.currentPosition()));  //shows position the table thinks it is at (how it got here)
-						int currentLoc = stepper.currentPosition(); // Resets the position to the actual positive number it should be
-						stepper.setCurrentPosition(currentLoc);
-						stepper.moveTo(currentLoc);
-						Serial.println(String(F("  Actual Current Position: ")) + String(stepper.currentPosition())); // shows the position value corrected.
-						brakeservo.write(servoBrake);	//Set the servo brake
-						delay(750);
-						release2();	//release the motor
-						Serial.println(String(F(" Brake Set & Motor Released ")));
-					}
-				}
+				if (currentLoc < 0) { currentLoc += totalSteps; }
+
+				stepper.setCurrentPosition(currentLoc);
+				stepper.moveTo(currentLoc);
+
+				Serial.print("Actual Current Position: " + String(stepper.currentPosition()));	// shows the position value corrected.
+
+				//Set the servo brake
+				//	brakeservo.write(servoBrake);
+				//	delay(750);
+
+				//release the motor
+				release2();
+				Serial.print("Brake Set & Motor Released");
+
 			}
-#endif // MOTORSHIELD
 		}
 	}
 }
 
-void fakeTurnMove(int fakeMove)
-{
-	if (displayRotatingCW) { currentTrack = fakeMove + 1; }
-	else { currentTrack = fakeMove - 1; }
+#endif // MOTORSHIELD
 
-	if (currentTrack < 1) { currentTrack = 6; }
-	else if (currentTrack > 6) { currentTrack = 1; }
-
-	String str1 = String(F("Moving: "));
-	String str2 = String(storeStartTrack);
-	String str3 = String(F(" to "));
-	String str4 = String(storeTargetTrack);
-
-	String lcdRowA = str1 + str2 + str3 + str4;
-	delay(1000);
-
-	String str5 = String(F("Track:"));
-	String str6 = String(currentTrack);
-	String lcdRowB = str5 + str6;
-	displayOutput(false, lcdRowA, lcdRowB);
-}
 
 //    <<<<    FINISH    ---------------------------    Stepper Voids     ---------------------------
 
@@ -1306,6 +1244,7 @@ void printArrayToSerial()
 	}
 }
 
+#ifdef VIEWFONT
 void printAllFontCharacters()
 {
 	tft.fillScreen(BLACK);
@@ -1327,5 +1266,5 @@ void printAllFontCharacters()
 	}
 	tft.fillScreen(BLACK);
 }
-
+#endif //VIEWFONT
 //    >>>>    FINISH    -----------------------   Test Screen Calibration    -----------------------
