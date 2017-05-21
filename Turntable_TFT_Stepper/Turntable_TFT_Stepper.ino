@@ -29,7 +29,7 @@ Author:  jimsanderson
 //#include <SPI.h>
 //#include <TFT_Extension.h>
 
-#include <Fonts/GillSansMT9pt7b.h>
+#include <Fonts/GillSansMT8pt7b.h>
 #include <Fonts/GillSansMTBold12pt7b.h>
 
 #define LCDROTATION 3
@@ -110,6 +110,8 @@ boolean isTurntableHeadChanged = true;
 boolean isReleased = false;
 boolean displayRotatingCW = false;
 boolean stayInMenu = true;
+int targetTrack;
+
 int headPosition = 0;
 int currentFunction = 0; // "AutoDCC", "Manual", "Calibrate", "Program"
 const int displayRotateDelay = 5;   // This is the minimum delay in ms between steps of the stepper motor
@@ -517,7 +519,7 @@ void decideButtonAction(int buttonPress)
 		case 1:
 			currentFunction = buttonPress;
 			drawButtons(1, false);
-			drawTurntableBridge(convertStepDeg(currentStepPosition, false), false);
+			drawTurntableBridge(convertStepDeg(currentStepPosition, false), true);
 			// TODO: work out moving steepper
 			break;
 		case 2:
@@ -541,8 +543,7 @@ void decideButtonAction(int buttonPress)
 			// TODO: work out moving steepper
 			if (buttonPress >= 5 && buttonPress <= 10)
 			{
-				int targetTrack = getTracksFromButtons(buttonPress);
-				selectedTracks[1] = targetTrack;
+				selectedTracks[1] = getTracksFromButtons(buttonPress);
 				manualMove();
 				//Set Head
 
@@ -671,7 +672,7 @@ void infoTextField(String textInfo)
 	if (textInfo.length() * 9 <= (width - 5))
 	{
 		tft.setTextColor(WHITE);
-		tft.setFont(&GillSansMT9pt7b);
+		tft.setFont(&GillSansMT8pt7b);
 		tft.print(textInfo);
 		resetFont();
 	}
@@ -762,9 +763,9 @@ int getTracksFromButtons(int buttonPress)
 	if (currentFunction == 1)
 		calcTrack = (buttonPress - tabParameters[0]);
 
-	returnTrack = trackPosition[calcTrack];
+	//returnTrack = calcTrack;
 
-	return returnTrack;
+	return calcTrack;
 }
 
 void createTrackButtons()
@@ -948,22 +949,48 @@ int readButtonArray(String buttonText, int returnValue)
 
 void manualMove()
 {
+
+	int turnPos = 0;
+	int rotFactor = 0;
+
 	//int trackPosition[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 };
 	Serial.println(String(selectedTracks[1]));
 	Serial.println(String(trackPosition[selectedTracks[1]]));
+	
+	drawTurntableBridge(convertStepDeg(trackPosition[selectedTracks[0]], false), false);
+
 	do
 	{
+
+
 		//	newTargetLocation = trackPosition[manMove];
-		doDummyStepperMove((int) calcLeastSteps,75);
-	
-		if ((int)currentStepPosition % 10 == 0)
+		SetStepperTargetLocation();
+
+		if (mainDiff >= 1)
+			rotFactor = 30;
+		else if (mainDiff <= -1)
+			rotFactor = -30;
+
+
+
+		if ((int)currentStepPosition % rotFactor == 0)
 		{
-			drawTurntableBridge(convertStepDeg(currentStepPosition-10,false), false);
-			drawTurntableBridge(convertStepDeg(currentStepPosition, false), true);
-			Serial.println(String(currentStepPosition));
+			turnPos = currentStepPosition;
+			drawTurntableBridge(convertStepDeg(turnPos - rotFactor,false), false);
+
+			if (currentStepPosition == 3180)
+				drawTurntableBridge(0, false);
+			
+			drawTurntableBridge(convertStepDeg(turnPos, false), true);
+			Serial.println(String(turnPos));
 		}
 
 	} while (trackPosition[selectedTracks[1]] != currentStepPosition);
+
+	drawTurntableBridge(convertStepDeg(turnPos, false), false);
+	drawTurntableBridge(convertStepDeg(currentStepPosition, false), true);
+
+	selectedTracks[0] = selectedTracks[1];
 }
 
 //    <<<<    FINISH    ----------------------    Manually Move Turntable     ----------------------
@@ -976,93 +1003,44 @@ void manualMove()
 int calcLeastSteps()
 {
 	int calcSteps = 0;
+	int selectTracks = selectedTracks[1];
+	int trackTargetSteps = trackPosition[selectTracks];
+
 #ifdef TESTING
-	int getStepsDistance = selectedTracks[1] - currentStepPosition;
+	int getStepsDistance = trackTargetSteps - currentStepPosition;
 #else
 	int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
 #endif // TESTING
 
+	//if(trackTargetSteps >= (totalSteps/2))
+
+
+	int clockwise = trackTargetSteps - currentStepPosition;
+	int counterclockwise = currentStepPosition - trackTargetSteps;
+
+#ifdef TESTING
+	Serial.println("selectTracks: " + String(selectTracks));
+	Serial.println("Target: " + String(trackTargetSteps));
+	Serial.println("CW: " + String(clockwise));
+	Serial.println("CCW: " + String(counterclockwise));
+	Serial.println("getStepsDistance: " + String(getStepsDistance));
+
+#endif // DEBUG
+
+
+	if (abs(clockwise) == abs(counterclockwise))
+		calcSteps = clockwise;
+
+/*
 	if (getStepsDistance > (totalSteps / 2))
-		calcSteps = getStepsDistance - totalSteps;
+		calcSteps = getStepsDistance - currentStepPosition;
 	else if (getStepsDistance < -(totalSteps / 2))
-		calcSteps = getStepsDistance + totalSteps;
+		calcSteps = getStepsDistance + currentStepPosition;
+*/
+
 	return calcSteps;
 }
-/*
-void moveManualTurntableMain(int manMove)
-{
-	infoTextField(String("Moving to Track " + String(selectedTracks[1])));
 
-	do
-	{
-		fakeTurnMove(selectedTracks[0]);
-
-	} while (trackPosition[selectedTracks[1]] != currentStepPosition);
-
-	selectedTracks[0] = selectedTracks[1];
-	infoTextField(String("Reached Track " + String(selectedTracks[1])));
-	delay(50);
-
-	do
-	{
-		buttonPress();
-	} while (stayInMenu);
-
-}
-
-void displayManualMove(int dispMove) // passes across selected track
-{
-
-	// Set track limits and direction Track 0 not allowed as reference point
-	if (dispMove < 1) { dispMove = 6; }
-	else if (dispMove > 6) { dispMove = 1; }
-
-	//if (isTurntableHead) { lcdRowA = String(F("HEAD selected...")); }
-	//else { lcdRowA = String(F("TAIL selected...")); }
-
-	isTurntableHeadChanged = isTurntableHead;
-
-	calcLeastSteps();
-
-	if (displayRotatingCW) { str1 = String(F("CW: ")); }
-	else { str1 = String(F("CCW: ")); }
-
-	//String str2 = String(currentTrack);
-	//String str3 = String(F(" to "));
-	//String str4 = String(dispMove);
-	//lcdRowB = str1 + str2 + str3 + str4;
-
-	//displayOutput(false, lcdRowA, lcdRowB);
-
-}
-
-void fakeTurnMove(int fakeMove)
-{
-	int currentTrack = selectedTracks[0];
-
-	if (displayRotatingCW) { currentTrack = fakeMove + 1; }
-	else { currentTrack = fakeMove - 1; }
-
-	if (currentTrack < 1) { currentTrack = 6; }
-	else if (currentTrack > 6) { currentTrack = 1; }
-
-
-	//String str1 = String(F("Moving: "));
-	//String str2 = String(storeStartTrack);
-	//String str3 = String(F(" to "));
-	//String str4 = String(storeTargetTrack);
-	//String lcdRowA = str1 + str2 + str3 + str4;
-
-	delay(1000);
-
-
-	//String str5 = String(F("Track:"));
-	//String str6 = String(currentTrack);
-	//String lcdRowB = str5 + str6;
-	//displayOutput(false, lcdRowA, lcdRowB);
-
-}
-*/
 
 #ifdef TESTING
 
@@ -1075,6 +1053,8 @@ int doDummyStepperMove(int dummySteps, int delaySteps)
 	//    if (isRotatingCW){dummyStepPosition = currentStepPosition +1;}
 	//    else (dummyStepPosition = currentStepPosition -1;)
 
+	if (dummySteps == 0) return 0;
+
 	if (dummySteps > 0)
 		dummyStepPosition = currentStepPosition + 1;
 	else
@@ -1084,7 +1064,7 @@ int doDummyStepperMove(int dummySteps, int delaySteps)
 
 	if (dummyStepPosition < 0)	dummyStepPosition = totalSteps;
 
-	delay(delaySteps);
+	delay(10);
 	distanceToGo = selectedTracks[1] - currentStepPosition;
 	
 	currentStepPosition = dummyStepPosition;
@@ -1100,18 +1080,18 @@ void SetStepperTargetLocation()
 
 	if (isTurntableHead)//use head location variable
 	{ 
-		newTargetLoc = trackPosition[selectedTracks[0]];
+		newTargetLoc = trackPosition[selectedTracks[1]];
 		inMotionToNewTarget = true;
 	}
 	else//use tail location variable
 	{ 
-		newTargetLoc = trackPosition[selectedTracks[1]];
+		newTargetLoc = trackPosition[selectedTracks[0]];
 		inMotionToNewTarget = true;
 	}
 
 	if (newTargetLoc > 0)
 	{
-		int mainDiff = newTargetLoc - currentStepPosition;
+		mainDiff = newTargetLoc - currentStepPosition;
 		if (mainDiff > (totalSteps / 2)) mainDiff = mainDiff - totalSteps;
 		else if (mainDiff < (-totalSteps / 2)) mainDiff = mainDiff + totalSteps;
 
@@ -1120,8 +1100,18 @@ void SetStepperTargetLocation()
 			mainDiff -= motorOvershoot;
 			overshootDestination = motorOvershoot;
 		}
+
 		doDummyStepperMove(mainDiff, 0);
 	}
+	//else
+	//{
+	//	if ((stepper.currentPosition() % MOTOR_STEP_COUNT) == 0)
+	//	{
+	//		//setCurrentPosition seems to always reset the position to 0, ignoring the parameter
+	//		Serial.println("Current location: " + String(stepper.currentPosition());
+	//		Serial.println(String(currentStepPosition) + " % STEPCOUNT. Why here?"));
+	//	}
+	//}
 	newTargetLocation = false;
 }
 
