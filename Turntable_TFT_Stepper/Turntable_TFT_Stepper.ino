@@ -171,8 +171,8 @@ Adafruit_StepperMotor *mystepper = AFMStop.getStepper(200, 2);   //Connect stepp
 void release2() { mystepper->release(); }
 
 #ifdef DEBUG
-int forwardstep2() { return dummyStepper(1, 25); }; //75 real
-int backwardstep2() { return dummyStepper(-1, 25); }; //75 real
+int forwardstep2() { return doDummyStepperMove(1, 25); }; //75 real
+int backwardstep2() { return doDummyStepperMove(-1, 25); }; //75 real
 #elif MOTORSHIELD
 //void forwardstep2() {mystepper->onestep(FORWARD, MICROSTEP);}
 //void backwardstep2() {mystepper->onestep(BACKWARD, MICROSTEP);}
@@ -920,6 +920,17 @@ int readButtonArray(String buttonText, int returnValue)
 //    >>>>    FINISH    ----------------------------   Auto DCC Mode    ----------------------------
 
 //    <<<<    START     ----------------------    Manually Move Turntable     ----------------------
+
+void manualMove()
+
+{
+
+	do
+	{
+		//	newTargetLocation = PositionTrack[manMove];
+		doDummyStepperMove(currentTrack);
+	} while (storeTargetTrack != currentTrack);
+}
 //    <<<<    FINISH    ----------------------    Manually Move Turntable     ----------------------
 
 //    <<<<    START     ---------------    Select And Programme Turntable Tracks     ---------------
@@ -1020,7 +1031,7 @@ void fakeTurnMove(int fakeMove)
 
 #ifdef TESTING
 
-int dummyStepper(int dummySteps, int delaySteps)
+int doDummyStepperMove(int dummySteps, int delaySteps)
 {
 	int dummyStepPosition = 0;
 
@@ -1073,7 +1084,7 @@ void SetStepperTargetLocation()
 			mainDiff -= motorOvershoot;
 			overshootDestination = motorOvershoot;
 		}
-		dummyStepper(mainDiff, 0);
+		doDummyStepperMove(mainDiff, 0);
 	}
 	newTargetLocation = false;
 }
@@ -1095,7 +1106,7 @@ void stepperTimer()
 		{
 			if (overshootDestination > 0)
 			{
-				dummyStepper(overshootDestination, 0);
+				doDummyStepperMove(overshootDestination, 0);
 				overshootDestination = -1;
 			}
 
@@ -1111,7 +1122,7 @@ void stepperTimer()
 					currentLoc += totalSteps;
 				}
 
-				dummyStepper(currentLoc, 0);
+				doDummyStepperMove(currentLoc, 0);
 				Serial.print("Actual Current Position: " + String(currentStepPosition));	// shows the position value corrected.
 			}
 		}
@@ -1121,6 +1132,50 @@ void stepperTimer()
 #endif // TESTING
 
 #ifdef MOTORSHIELD
+
+void doStepperMove()
+{
+	stepper.run();	// Run the Stepper Motor
+	boolean isInMotion = (abs(stepper.distanceToGo()) > 0);
+	boolean newTargetSet = false;
+
+	// If there is a new target location, set the target
+	if (newTargetLocation)
+	{
+		SetStepperTargetLocation();
+		Serial.println("Moving to " + String(newTargetLocation));
+		newTargetSet = true;
+	}
+
+	if (inMotionToNewTarget)
+	{
+		if ((!isInMotion) && (!newTargetSet))
+		{
+			Serial.println("Not Moving!	DtG: " + String(stepper.distanceToGo());
+			Serial.println("TP: "+ String(stepper.targetPosition());
+			Serial.println("CP: " + String(stepper.currentPosition());
+			Serial.println("S: "+ String(stepper.speed());
+
+		}
+		//release the brake
+			brakeservo.write(servoRelease);
+			delay(5);
+			inMotionToNewTarget = isInMotion;
+	}
+	else
+	{
+		if ((stepper.currentPosition() % MOTOR_STEP_COUNT) == 0)
+		{
+			//setCurrentPosition seems to always reset the position to 0, ignoring the parameter
+			Serial.println("Current location: " + String(stepper.currentPosition());
+			Serial.println(String(currentStepPosition)+ " % STEPCOUNT. Why here?"));			
+		}
+	}
+
+	if (mainDiff < 0) { displayRotatingCW = false; }
+	else if (mainDiff > 0) { displayRotatingCW = true; }
+
+}
 
 void SetStepperTargetLocation()
 {
