@@ -81,10 +81,11 @@ Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 const int GetTrackTail[6] = { 4, 5, 6, 1, 2, 3 }; // Array for Tail Tracks
 
 #ifdef DEBUG
-int PositionTrack[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 }; //{ 0, 0, 0, 0, 0, 0, 0 };   // Save EEPROM addresses to array - index 0 = calibration position
-int selectedTracks[2] = { 1, 4 };
+int trackPosition[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 }; //{ 0, 0, 0, 0, 0, 0, 0 };   // Save EEPROM addresses to array - index 0 = calibration position
+int selectedTracks[2] = { 0, 0 };
+//int selectedTracks[2] = { 1, 4 };
 #else
-int PositionTrack[7] = { 0, 0, 0, 0, 0, 0, 0 };
+int trackPosition[7] = { 0, 0, 0, 0, 0, 0, 0 };
 int selectedTracks[2] = { 0, 0 };
 #endif // DEBUG
 
@@ -202,7 +203,7 @@ void startup()
 	createTrackButtons();
 	createFunctionbuttons();
 	printArrayToSerial();
-	drawTracks(true);
+	drawTracks();
 	drawTurntablePath();
 	infoTextField("DEBUG SETUP");
 	delay(3000);
@@ -242,7 +243,7 @@ void arrayWritelong(int address, int value)
 	int val1 = value / 100;
 	int val2 = value % 100;
 	int valueJoin = (val1 * 100) + val2;
-	PositionTrack[address] = valueJoin;
+	trackPosition[address] = valueJoin;
 }
 
 int EEPROMReadlong(int address)
@@ -261,7 +262,7 @@ void readArrayEEPROM()
 	for (int i = 0; i < 7; i++)
 	{
 		returnArray = EEPROMReadlong(i);
-		PositionTrack[i] = returnArray;
+		trackPosition[i] = returnArray;
 	}
 }
 
@@ -318,7 +319,7 @@ void BasicAccDecoderPacket_Handler(int address, boolean activate, byte data)  //
 		if (address == gAddresses[i].address)
 		{
 			isTurntableHead = enable;
-			selectedTracks[1] = PositionTrack[i];
+			selectedTracks[1] = trackPosition[i];
 			newTargetLocation = true;
 			doStepperMove();
 		}
@@ -341,18 +342,17 @@ void autoDCCMode()
 
 //    >>>>    START     ---------------------------   Draw Turntable     ---------------------------
 
-void drawAll(boolean calibrationMode, int currentPos)
+void drawAll(int currentPos)
 {
 	drawTurntable();
-	drawTurntableBridge(currentPos, true);
-	drawTracks(calibrationMode);
-	drawTracks(true);
+	drawTurntableBridge(currentPos,true);
+	drawTracks();
 
 #ifdef DEBUG
-	printArrayToSerial();
+	//printArrayToSerial();
 #endif // DEBUG
 
-	drawButtons(3, false);
+	//drawButtons(3, false);
 }
 
 void drawTurntable()
@@ -363,10 +363,16 @@ void drawTurntable()
 
 void drawTurntableBridge(int angle, boolean show)
 {
-	int dispCol = GREY; int dispCol1 = GREEN; int dispCol2 = RED;
+	int dispCol = GREY;
+	int dispCol1 = GREEN;
+	int dispCol2 = RED;
 
-	if (show != true)
-		dispCol = BLACK; dispCol1 = BLACK;  dispCol2 = BLACK;
+	if (show == false)
+	{
+		dispCol = BLACK;
+		dispCol1 = BLACK;
+		dispCol2 = BLACK;
+	}
 
 	int adjAngle = correctAngle(angle);
 
@@ -407,18 +413,18 @@ void drawMarker(int p1, int radius1, int size, int colour, boolean fill)
 		tft.drawCircle(aX, aY, size, colour);
 }
 
-void drawTracks(boolean isTrackCalibration)
+void drawTracks()
 {
 	int t = 1;
 
 	if (currentFunction == 2)
 		t = 0;
 
-	int trackArray = sizeof(PositionTrack) / sizeof(PositionTrack[0]);
+	int trackArray = sizeof(trackPosition) / sizeof(trackPosition[0]);
 
 	for (int i = t; i < trackArray; i++)
 	{
-		int adjAngle = correctAngle(convertStepDeg(PositionTrack[i], false));
+		int adjAngle = correctAngle(convertStepDeg(trackPosition[i], false));
 		int innerTrackRad = turntableParameters[0];
 		int outerTrackRad = turntableParameters[0] + turntableParameters[2];
 		drawTrackLine(adjAngle, adjAngle, innerTrackRad, outerTrackRad, turntableParameters[3] - 1, GREY);
@@ -430,9 +436,9 @@ void drawTracks(boolean isTrackCalibration)
 void drawTurntablePath()
 {
 
-	int startAngle = correctAngle(convertStepDeg(PositionTrack[selectedTracks[0]], false));
-	int startTrackAngle = convertStepDeg(PositionTrack[selectedTracks[0]], false);
-	int endAngle = convertStepDeg(PositionTrack[selectedTracks[1]], false);
+	int startAngle = correctAngle(convertStepDeg(trackPosition[selectedTracks[0]], false));
+	int startTrackAngle = convertStepDeg(trackPosition[selectedTracks[0]], false);
+	int endAngle = convertStepDeg(trackPosition[selectedTracks[1]], false);
 	//int currentPos = correctAngle(convertStepDeg(currentStepPosition, false));
 	int currentPos = correctAngle(convertStepDeg(500, false));
 
@@ -506,24 +512,28 @@ void decideButtonAction(int buttonPress)
 		switch (buttonPress)
 		{
 		case 0:
+			currentFunction = buttonPress;
 			break;
 		case 1:
-			currentFunction = 1;
-			drawAll(false, 0);
+			currentFunction = buttonPress;
+			drawButtons(1, false);
+			drawTurntableBridge(convertStepDeg(currentStepPosition, false), false);
 			// TODO: work out moving steepper
 			break;
 		case 2:
-			currentFunction = 2;
+			drawButtons(2, false);
+			currentFunction = buttonPress;
 			break;
 		case 3:
-			currentFunction = 3;
+			drawButtons(3, false);
+			currentFunction = buttonPress;
 			break;
 		}
 	}
 	if (buttonPress >= tabParameters[0])
 	{
 		stayInMenu = true;
-		switch (menuPage)
+		switch (currentFunction)
 		{
 		case 0:
 			break;
@@ -531,6 +541,9 @@ void decideButtonAction(int buttonPress)
 			// TODO: work out moving steepper
 			if (buttonPress >= 5 && buttonPress <= 10)
 			{
+				int targetTrack = getTracksFromButtons(buttonPress);
+				selectedTracks[1] = targetTrack;
+				manualMove();
 				//Set Head
 
 			}
@@ -742,13 +755,25 @@ int touchButton(int tX, int tY)
 	return buttonPressed;
 }
 
+int getTracksFromButtons(int buttonPress)
+{
+	int returnTrack = 0;
+	int calcTrack = 0;
+	if (currentFunction == 1)
+		calcTrack = (buttonPress - tabParameters[0]);
+
+	returnTrack = trackPosition[calcTrack];
+
+	return returnTrack;
+}
+
 void createTrackButtons()
 {
-	int trackArray = sizeof(PositionTrack) / sizeof(PositionTrack[0]);
+	int trackArray = sizeof(trackPosition) / sizeof(trackPosition[0]);
 
 	for (int i = 0; i < trackArray; i++)
 	{
-		int degPos = correctAngle(convertStepDeg(PositionTrack[i], false));
+		int degPos = correctAngle(convertStepDeg(trackPosition[i], false));
 		int buttonRadius = turntableParameters[0] + turntableParameters[2] + (buttonParameters[0] / 2);
 		int pX = 0;
 		int pY = 0;
@@ -797,7 +822,7 @@ void drawButtons(int butttonPage, boolean reset)
 	int butColour = buttonColour;
 	int minArray;
 	int maxArray;
-	int cursorX = 6;
+	int cursorX = 7;
 	int cursorY = 17;
 
 	switch (butttonPage)
@@ -922,15 +947,25 @@ int readButtonArray(String buttonText, int returnValue)
 //    <<<<    START     ----------------------    Manually Move Turntable     ----------------------
 
 void manualMove()
-
 {
-
+	//int trackPosition[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 };
+	Serial.println(String(selectedTracks[1]));
+	Serial.println(String(trackPosition[selectedTracks[1]]));
 	do
 	{
-		//	newTargetLocation = PositionTrack[manMove];
-		doDummyStepperMove(currentTrack);
-	} while (storeTargetTrack != currentTrack);
+		//	newTargetLocation = trackPosition[manMove];
+		doDummyStepperMove((int) calcLeastSteps,75);
+	
+		if ((int)currentStepPosition % 10 == 0)
+		{
+			drawTurntableBridge(convertStepDeg(currentStepPosition-10,false), false);
+			drawTurntableBridge(convertStepDeg(currentStepPosition, false), true);
+			Serial.println(String(currentStepPosition));
+		}
+
+	} while (trackPosition[selectedTracks[1]] != currentStepPosition);
 }
+
 //    <<<<    FINISH    ----------------------    Manually Move Turntable     ----------------------
 
 //    <<<<    START     ---------------    Select And Programme Turntable Tracks     ---------------
@@ -962,7 +997,7 @@ void moveManualTurntableMain(int manMove)
 	{
 		fakeTurnMove(selectedTracks[0]);
 
-	} while (PositionTrack[selectedTracks[1]] != currentStepPosition);
+	} while (trackPosition[selectedTracks[1]] != currentStepPosition);
 
 	selectedTracks[0] = selectedTracks[1];
 	infoTextField(String("Reached Track " + String(selectedTracks[1])));
@@ -1051,7 +1086,8 @@ int doDummyStepperMove(int dummySteps, int delaySteps)
 
 	delay(delaySteps);
 	distanceToGo = selectedTracks[1] - currentStepPosition;
-
+	
+	currentStepPosition = dummyStepPosition;
 	return dummyStepPosition;
 }
 
@@ -1064,12 +1100,12 @@ void SetStepperTargetLocation()
 
 	if (isTurntableHead)//use head location variable
 	{ 
-		newTargetLoc = PositionTrack[selectedTracks[0]];
+		newTargetLoc = trackPosition[selectedTracks[0]];
 		inMotionToNewTarget = true;
 	}
 	else//use tail location variable
 	{ 
-		newTargetLoc = PositionTrack[selectedTracks[1]];
+		newTargetLoc = trackPosition[selectedTracks[1]];
 		inMotionToNewTarget = true;
 	}
 
@@ -1185,12 +1221,12 @@ void SetStepperTargetLocation()
 	int newTargetLoc = -1;
 	if (isTurntableHead)
 	{ //use head location variable
-		newTargetLoc = PositionTrack[selectedTracks[0]];
+		newTargetLoc = trackPosition[selectedTracks[0]];
 		inMotionToNewTarget = true;
 	}
 	else
 	{ //use tail location variable
-		newTargetLoc = PositionTrack[selectedTracks[1]];
+		newTargetLoc = trackPosition[selectedTracks[1]];
 		inMotionToNewTarget = true;
 	}
 
