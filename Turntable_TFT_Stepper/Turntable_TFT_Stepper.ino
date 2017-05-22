@@ -133,7 +133,7 @@ const int  totalSteps = 200 * 16;   //number of steps for a full rotation
 
 int menuPage = 0;
 int storeKeyPress;
-const int turntableParameters[5] = { 60, 15, 25, 5, 8 };  //radiusTurntable, turntableOffset, lengthTrack, trackWidth, inner radius
+const int turntableParameters[5] = { 60, 20, 25, 5, 8 };  //radiusTurntable, turntableOffset, lengthTrack, trackWidth, inner radius
 
 int refactorX = 0;
 int refactorY = 0;
@@ -154,7 +154,6 @@ const unsigned int buttonActiveColour = ORANGE;
 int xCentre = (tft.height() / 2);
 int yCentre = ((tft.width() + turntableParameters[1] + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
 int turnTablePos = yCentre;
-
 //    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
 
 //    >>>>    START     --------------------------   Define DCC Control   --------------------------
@@ -201,14 +200,22 @@ void startup()
 {
 	MenuTabs(0);
 	drawMenuFrame();
+
+	
+
+	/*
+	drawAll(0);
 	drawTurntable();
 	createTrackButtons();
 	createFunctionbuttons();
-	printArrayToSerial();
+	//printArrayToSerial();
 	drawTracks();
-	drawTurntablePath();
+	*/
+
+
+	//drawTurntablePath();
 	infoTextField("DEBUG SETUP");
-	delay(3000);
+	//delay(3000);
 }
 //    >>>>    FINISH    --------------------------------   SETUP    --------------------------------
 
@@ -349,6 +356,8 @@ void drawAll(int currentPos)
 	drawTurntable();
 	drawTurntableBridge(currentPos,true);
 	drawTracks();
+	createTrackButtons();
+	createFunctionbuttons();
 
 #ifdef DEBUG
 	//printArrayToSerial();
@@ -506,6 +515,8 @@ void decideButtonAction(int buttonPress)
 {
 	if (buttonPress < 0) return;
 
+	turnTablePos = ((tft.width() + turntableParameters[1] + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
+
 	if (buttonPress < tabParameters[0])
 	{
 		stayInMenu = false;
@@ -514,9 +525,13 @@ void decideButtonAction(int buttonPress)
 		switch (buttonPress)
 		{
 		case 0:
+			turnTablePos = turnTablePos - turntableParameters[1];
+			yCentre = xCentre + turntableParameters[1];
 			currentFunction = buttonPress;
 			break;
 		case 1:
+			turnTablePos = turnTablePos - turntableParameters[1];
+			drawAll(currentStepPosition);
 			currentFunction = buttonPress;
 			drawButtons(1, false);
 			drawTurntableBridge(convertStepDeg(currentStepPosition, false), true);
@@ -768,7 +783,7 @@ int getTracksFromButtons(int buttonPress)
 	return calcTrack;
 }
 
-void createTrackButtons()
+void createTrackButtons(int turnOffset)
 {
 	int trackArray = sizeof(trackPosition) / sizeof(trackPosition[0]);
 
@@ -782,12 +797,13 @@ void createTrackButtons()
 		if (i == 0)
 		{
 			pX = findX(xCentre, turntableParameters[0] + buttonParameters[2] + tabParameters[4], degPos) - (buttonParameters[1] / 2);
-			pY = findY(yCentre, turntableParameters[0] + buttonParameters[2] + tabParameters[4] * 2, degPos) - (buttonParameters[0] / 2);
+			void createTrackButtons(int turnOffset)
+				pY = findY(yCentre+ turnOffset, turntableParameters[0] + buttonParameters[2] + tabParameters[4] * 2, degPos) - (buttonParameters[0] / 2);
 		}
 		else
 		{
 			pX = findX(xCentre, buttonRadius, degPos) - (buttonParameters[1] / 2);
-			pY = findY(yCentre, buttonRadius, degPos) - (buttonParameters[0] / 2);
+			pY = findY(yCentre + turnOffset, buttonRadius, degPos) - (buttonParameters[0] / 2);
 		}
 
 		String buttonText = buttonTextArray[i + tabParameters[0]];
@@ -961,17 +977,12 @@ void manualMove()
 
 	do
 	{
-
-
-		//	newTargetLocation = trackPosition[manMove];
 		SetStepperTargetLocation();
 
 		if (mainDiff >= 1)
 			rotFactor = 30;
 		else if (mainDiff <= -1)
 			rotFactor = -30;
-
-
 
 		if ((int)currentStepPosition % rotFactor == 0)
 		{
