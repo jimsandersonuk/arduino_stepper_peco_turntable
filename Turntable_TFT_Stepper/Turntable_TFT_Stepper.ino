@@ -29,7 +29,7 @@ Author:  jimsanderson
 //#include <SPI.h>
 //#include <TFT_Extension.h>
 
-#include <Fonts/GillSansMT8pt7b.h>
+#include <Fonts/GillSansMT9pt7b.h>
 #include <Fonts/GillSansMTBold12pt7b.h>
 
 #define LCDROTATION 3
@@ -93,7 +93,7 @@ int selectedTracks[2] = { 0, 0 };
 int sensorVal = digitalRead(3);         // enable Hall-effect Sensor on Pin 3
 int arrayCalibrate[5] = { 0, 0, 0, 0, 0 };   // Array to pass in calibration run results
 
-// Programme Track Positions
+											 // Programme Track Positions
 int currentStepPosition = 0;  // current step number
 int storeProgTracks[6] = { 0, 0, 0, 0, 0, 0 };
 boolean chkOverwrite = false;
@@ -127,9 +127,9 @@ int overshootDestination = -1;
 const int releaseTimeout_ms = 2000;   //reduced to 2 seconds for now
 const int  totalSteps = 200 * 16;   //number of steps for a full rotation
 
-//    >>>>    FINISH    --------------------   Parameters for turntable move    --------------------
+									//    >>>>    FINISH    --------------------   Parameters for turntable move    --------------------
 
-//    >>>>    START     -------------------------------   TFT Menu   -------------------------------
+									//    >>>>    START     -------------------------------   TFT Menu   -------------------------------
 
 int menuPage = 0;
 int storeKeyPress;
@@ -152,20 +152,20 @@ const unsigned int buttonColour = LIGHTGREY; //GREENYELLOW;
 const unsigned int buttonActiveColour = ORANGE;
 
 int xCentre = (tft.height() / 2);
-int yCentre = ((tft.width() + turntableParameters[1] + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
-int turnTablePos = yCentre;
-//    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
+int yCentre; //= ((tft.width() + turntableParameters[1] + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
 
-//    >>>>    START     --------------------------   Define DCC Control   --------------------------
+			 //    >>>>    FINISH    -------------------------------   TFT Menu   -------------------------------
+
+			 //    >>>>    START     --------------------------   Define DCC Control   --------------------------
 
 #define kDCC_INTERRUPT  0 // Define DCC commands to Arduino
 typedef struct { int address; }
 DCCAccessoryAddress;  // Address to respond to
 DCCAccessoryAddress gAddresses[7]; // Allows 7 DCC addresses: [XX] = number of addresses you need (including 0).
 
-//    >>>>    FINISH    --------------------------   Define DCC Control   --------------------------
+								   //    >>>>    FINISH    --------------------------   Define DCC Control   --------------------------
 
-//    >>>>    START     ----------------------   Adafruit MotorShield Setup   ----------------------
+								   //    >>>>    START     ----------------------   Adafruit MotorShield Setup   ----------------------
 
 Adafruit_MotorShield AFMStop(0x60); // Default address, no jumpers
 Adafruit_StepperMotor *mystepper = AFMStop.getStepper(200, 2);   //Connect stepper with 200 steps per revolution (1.8 degree) to the M3, M4 terminals (blue,yellow,green,red)
@@ -201,8 +201,6 @@ void startup()
 	MenuTabs(0);
 	drawMenuFrame();
 
-	
-
 	/*
 	drawAll(0);
 	drawTurntable();
@@ -212,7 +210,7 @@ void startup()
 	drawTracks();
 	*/
 
-
+	setTurntableOffset(false, 0);
 	//drawTurntablePath();
 	infoTextField("DEBUG SETUP");
 	//delay(3000);
@@ -351,10 +349,28 @@ void autoDCCMode()
 
 //    >>>>    START     ---------------------------   Draw Turntable     ---------------------------
 
+void setTurntableOffset(boolean isOffset, int offsetFactor)
+{
+	if (offsetFactor < 0) offsetFactor = -offsetFactor;
+
+	if (isOffset)
+	{
+		if (offsetFactor != 0)
+		{
+			yCentre = ((tft.width() + offsetFactor + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
+			createTrackButtons();
+		}
+	}
+
+	else
+		yCentre = ((tft.width() + turntableParameters[1] + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
+	createTrackButtons();
+}
+
 void drawAll(int currentPos)
 {
 	drawTurntable();
-	drawTurntableBridge(currentPos,true);
+	drawTurntableBridge(currentPos, true);
 	drawTracks();
 	createTrackButtons();
 	createFunctionbuttons();
@@ -368,8 +384,8 @@ void drawAll(int currentPos)
 
 void drawTurntable()
 {
-	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0], GREY);
-	tft.fillCircle(xCentre, turnTablePos, turntableParameters[0] - 4, BLACK);
+	tft.fillCircle(xCentre, yCentre, turntableParameters[0], GREY);
+	tft.fillCircle(xCentre, yCentre, turntableParameters[0] - 4, BLACK);
 }
 
 void drawTurntableBridge(int angle, boolean show)
@@ -394,7 +410,7 @@ void drawTurntableBridge(int angle, boolean show)
 
 	int innerTurnRad = turntableParameters[0] - turntableParameters[4];
 
-	tft.drawCircle(xCentre, turnTablePos, 3, GREY);
+	tft.drawCircle(xCentre, yCentre, 3, GREY);
 	drawTrackLine(top1, top2, innerTurnRad, innerTurnRad, 0, dispCol);
 	drawTrackLine(bot1, bot2, innerTurnRad, innerTurnRad, 0, dispCol);
 	drawTrackLine(top1, bot1, innerTurnRad, innerTurnRad, 0, dispCol);
@@ -407,16 +423,16 @@ void drawTurntableBridge(int angle, boolean show)
 void drawTrackLine(int p1, int p2, int radius1, int radius2, int offset, int colour)
 {
 	int aX = findX(xCentre, radius1, p1);
-	int aY = findY(turnTablePos, radius1, p1);
+	int aY = findY(yCentre, radius1, p1);
 	int bX = findX(xCentre, radius2, p2);
-	int bY = findY(turnTablePos, radius2, p2);
+	int bY = findY(yCentre, radius2, p2);
 	tft.drawLine(aX, aY + offset, bX, bY + offset, colour);
 }
 
 void drawMarker(int p1, int radius1, int size, int colour, boolean fill)
 {
 	int aX = findX(xCentre, radius1, p1);
-	int aY = findY(turnTablePos, radius1, p1);
+	int aY = findY(yCentre, radius1, p1);
 
 	if (fill)
 		tft.fillCircle(aX, aY, size, colour);
@@ -450,8 +466,8 @@ void drawTurntablePath()
 	int startAngle = correctAngle(convertStepDeg(trackPosition[selectedTracks[0]], false));
 	int startTrackAngle = convertStepDeg(trackPosition[selectedTracks[0]], false);
 	int endAngle = convertStepDeg(trackPosition[selectedTracks[1]], false);
-	//int currentPos = correctAngle(convertStepDeg(currentStepPosition, false));
-	int currentPos = correctAngle(convertStepDeg(500, false));
+	int  currentPos = correctAngle(convertStepDeg(currentStepPosition, false));
+	//int currentPos = correctAngle(convertStepDeg(500, false));
 
 	int degToTarget = endAngle - startTrackAngle;
 	int innerTurnRad = turntableParameters[0] - turntableParameters[4];
@@ -515,7 +531,7 @@ void decideButtonAction(int buttonPress)
 {
 	if (buttonPress < 0) return;
 
-	turnTablePos = ((tft.width() + turntableParameters[1] + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
+	//yCentre = ((tft.width() + turntableParameters[1] + tabParameters[4] + tabParameters[1] + tabParameters[2]) / 2);
 
 	if (buttonPress < tabParameters[0])
 	{
@@ -525,12 +541,11 @@ void decideButtonAction(int buttonPress)
 		switch (buttonPress)
 		{
 		case 0:
-			turnTablePos = turnTablePos - turntableParameters[1];
-			yCentre = xCentre + turntableParameters[1];
+			setTurntableOffset(true, turntableParameters[1]);
 			currentFunction = buttonPress;
 			break;
 		case 1:
-			turnTablePos = turnTablePos - turntableParameters[1];
+			setTurntableOffset(true, turntableParameters[1]);
 			drawAll(currentStepPosition);
 			currentFunction = buttonPress;
 			drawButtons(1, false);
@@ -538,10 +553,12 @@ void decideButtonAction(int buttonPress)
 			// TODO: work out moving steepper
 			break;
 		case 2:
+			setTurntableOffset(false, 0);
 			drawButtons(2, false);
 			currentFunction = buttonPress;
 			break;
 		case 3:
+			setTurntableOffset(false, 0);
 			drawButtons(3, false);
 			currentFunction = buttonPress;
 			break;
@@ -553,15 +570,14 @@ void decideButtonAction(int buttonPress)
 		switch (currentFunction)
 		{
 		case 0:
+			moveTurntable();
 			break;
 		case 1:
-			// TODO: work out moving steepper
 			if (buttonPress >= 5 && buttonPress <= 10)
 			{
 				selectedTracks[1] = getTracksFromButtons(buttonPress);
-				manualMove();
+				moveTurntable();
 				//Set Head
-
 			}
 			break;
 		case 2:
@@ -687,7 +703,7 @@ void infoTextField(String textInfo)
 	if (textInfo.length() * 9 <= (width - 5))
 	{
 		tft.setTextColor(WHITE);
-		tft.setFont(&GillSansMT8pt7b);
+		tft.setFont(&GillSansMT9pt7b);
 		tft.print(textInfo);
 		resetFont();
 	}
@@ -783,7 +799,7 @@ int getTracksFromButtons(int buttonPress)
 	return calcTrack;
 }
 
-void createTrackButtons(int turnOffset)
+void createTrackButtons()
 {
 	int trackArray = sizeof(trackPosition) / sizeof(trackPosition[0]);
 
@@ -797,13 +813,12 @@ void createTrackButtons(int turnOffset)
 		if (i == 0)
 		{
 			pX = findX(xCentre, turntableParameters[0] + buttonParameters[2] + tabParameters[4], degPos) - (buttonParameters[1] / 2);
-			void createTrackButtons(int turnOffset)
-				pY = findY(yCentre+ turnOffset, turntableParameters[0] + buttonParameters[2] + tabParameters[4] * 2, degPos) - (buttonParameters[0] / 2);
+			pY = findY(yCentre, turntableParameters[0] + buttonParameters[2] + tabParameters[4] * 2, degPos) - (buttonParameters[0] / 2);
 		}
 		else
 		{
 			pX = findX(xCentre, buttonRadius, degPos) - (buttonParameters[1] / 2);
-			pY = findY(yCentre + turnOffset, buttonRadius, degPos) - (buttonParameters[0] / 2);
+			pY = findY(yCentre, buttonRadius, degPos) - (buttonParameters[0] / 2);
 		}
 
 		String buttonText = buttonTextArray[i + tabParameters[0]];
@@ -963,17 +978,22 @@ int readButtonArray(String buttonText, int returnValue)
 
 //    <<<<    START     ----------------------    Manually Move Turntable     ----------------------
 
-void manualMove()
+void moveTurntable()
 {
 
 	int turnPos = 0;
 	int rotFactor = 0;
 
 	//int trackPosition[7] = { 0, 560, 800, 1040, 2160, 2400, 2640 };
+#ifdef DEBUG
+
 	Serial.println(String(selectedTracks[1]));
 	Serial.println(String(trackPosition[selectedTracks[1]]));
-	
+
+#endif // DEBUG
+
 	drawTurntableBridge(convertStepDeg(trackPosition[selectedTracks[0]], false), false);
+	drawTurntablePath();
 
 	do
 	{
@@ -987,11 +1007,11 @@ void manualMove()
 		if ((int)currentStepPosition % rotFactor == 0)
 		{
 			turnPos = currentStepPosition;
-			drawTurntableBridge(convertStepDeg(turnPos - rotFactor,false), false);
+			drawTurntableBridge(convertStepDeg(turnPos - rotFactor, false), false);
 
-			if (currentStepPosition == 3180)
+			if (currentStepPosition > (totalSteps - rotFactor) || currentStepPosition < rotFactor )//3180)
 				drawTurntableBridge(0, false);
-			
+
 			drawTurntableBridge(convertStepDeg(turnPos, false), true);
 			Serial.println(String(turnPos));
 		}
@@ -1010,48 +1030,44 @@ void manualMove()
 //    <<<<    FINISH    ---------------    Select And Programme Turntable Tracks     ---------------
 
 //    <<<<    START     ---------------------------    Stepper Voids     ---------------------------
-
+/*
 int calcLeastSteps()
 {
-	int calcSteps = 0;
-	int selectTracks = selectedTracks[1];
-	int trackTargetSteps = trackPosition[selectTracks];
+int calcSteps = 0;
+int selectTracks = selectedTracks[1];
+int trackTargetSteps = trackPosition[selectTracks];
 
 #ifdef TESTING
-	int getStepsDistance = trackTargetSteps - currentStepPosition;
+int getStepsDistance = trackTargetSteps - currentStepPosition;
 #else
-	int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
+int getStepsDistance = selectedTracks[1] - stepper.currentPosition();
 #endif // TESTING
 
-	//if(trackTargetSteps >= (totalSteps/2))
+//if(trackTargetSteps >= (totalSteps/2))
 
-
-	int clockwise = trackTargetSteps - currentStepPosition;
-	int counterclockwise = currentStepPosition - trackTargetSteps;
+int clockwise = trackTargetSteps - currentStepPosition;
+int counterclockwise = currentStepPosition - trackTargetSteps;
 
 #ifdef TESTING
-	Serial.println("selectTracks: " + String(selectTracks));
-	Serial.println("Target: " + String(trackTargetSteps));
-	Serial.println("CW: " + String(clockwise));
-	Serial.println("CCW: " + String(counterclockwise));
-	Serial.println("getStepsDistance: " + String(getStepsDistance));
+Serial.println("selectTracks: " + String(selectTracks));
+Serial.println("Target: " + String(trackTargetSteps));
+Serial.println("CW: " + String(clockwise));
+Serial.println("CCW: " + String(counterclockwise));
+Serial.println("getStepsDistance: " + String(getStepsDistance));
 
 #endif // DEBUG
 
+if (abs(clockwise) == abs(counterclockwise))
+calcSteps = clockwise;
 
-	if (abs(clockwise) == abs(counterclockwise))
-		calcSteps = clockwise;
+if (getStepsDistance > (totalSteps / 2))
+calcSteps = getStepsDistance - currentStepPosition;
+else if (getStepsDistance < -(totalSteps / 2))
+calcSteps = getStepsDistance + currentStepPosition;
 
-/*
-	if (getStepsDistance > (totalSteps / 2))
-		calcSteps = getStepsDistance - currentStepPosition;
-	else if (getStepsDistance < -(totalSteps / 2))
-		calcSteps = getStepsDistance + currentStepPosition;
-*/
-
-	return calcSteps;
+return calcSteps;
 }
-
+*/
 
 #ifdef TESTING
 
@@ -1077,7 +1093,7 @@ int doDummyStepperMove(int dummySteps, int delaySteps)
 
 	delay(10);
 	distanceToGo = selectedTracks[1] - currentStepPosition;
-	
+
 	currentStepPosition = dummyStepPosition;
 	return dummyStepPosition;
 }
@@ -1090,12 +1106,12 @@ void SetStepperTargetLocation()
 	int newTargetLoc = -1;
 
 	if (isTurntableHead)//use head location variable
-	{ 
+	{
 		newTargetLoc = trackPosition[selectedTracks[1]];
 		inMotionToNewTarget = true;
 	}
 	else//use tail location variable
-	{ 
+	{
 		newTargetLoc = trackPosition[selectedTracks[0]];
 		inMotionToNewTarget = true;
 	}
@@ -1125,7 +1141,7 @@ void SetStepperTargetLocation()
 	//}
 	newTargetLocation = false;
 }
-
+/*
 void stepperTimer()
 {
 	int currentLoc = 0;
@@ -1133,7 +1149,7 @@ void stepperTimer()
 
 	//Check if we have any distance to move for release() timeout.	Can check the buffered var isInMotion because we also check the other variables.
 	if (isInMotion)
-	{		
+	{
 		stepperLastMoveTime = millis(); //We still have some distance to move, so reset the release timeout
 		isReleased = false;
 	}
@@ -1148,14 +1164,14 @@ void stepperTimer()
 			}
 
 			if (((millis() - stepperLastMoveTime) >= releaseTimeout_ms))
-			{				
+			{
 				isReleased = true; //If isReleased, don't release again.
 				Serial.print("Relative Current Position: " + String(currentStepPosition));	//shows position the table thinks it is at (how it got here)
 				currentLoc = currentStepPosition;	// Resets the position to the actual positive number it should be
 				currentLoc = currentStepPosition % totalSteps;
 
-				if (currentLoc < 0) 
-				{ 
+				if (currentLoc < 0)
+				{
 					currentLoc += totalSteps;
 				}
 
@@ -1165,7 +1181,7 @@ void stepperTimer()
 		}
 	}
 }
-
+*/
 #endif // TESTING
 
 #ifdef MOTORSHIELD
@@ -1189,15 +1205,15 @@ void doStepperMove()
 		if ((!isInMotion) && (!newTargetSet))
 		{
 			Serial.println("Not Moving!	DtG: " + String(stepper.distanceToGo());
-			Serial.println("TP: "+ String(stepper.targetPosition());
+			Serial.println("TP: " + String(stepper.targetPosition());
 			Serial.println("CP: " + String(stepper.currentPosition());
-			Serial.println("S: "+ String(stepper.speed());
+			Serial.println("S: " + String(stepper.speed());
 
 		}
 		//release the brake
-			brakeservo.write(servoRelease);
-			delay(5);
-			inMotionToNewTarget = isInMotion;
+		brakeservo.write(servoRelease);
+		delay(5);
+		inMotionToNewTarget = isInMotion;
 	}
 	else
 	{
@@ -1205,7 +1221,7 @@ void doStepperMove()
 		{
 			//setCurrentPosition seems to always reset the position to 0, ignoring the parameter
 			Serial.println("Current location: " + String(stepper.currentPosition());
-			Serial.println(String(currentStepPosition)+ " % STEPCOUNT. Why here?"));			
+			Serial.println(String(currentStepPosition) + " % STEPCOUNT. Why here?"));
 		}
 	}
 
@@ -1292,22 +1308,18 @@ void stepperTimer()
 				stepper.moveTo(currentLoc);
 
 				Serial.print("Actual Current Position: " + String(stepper.currentPosition()));	// shows the position value corrected.
-
-				//Set the servo brake
-				//	brakeservo.write(servoBrake);
+								
+				//	brakeservo.write(servoBrake);		//Set the servo brake
 				//	delay(750);
 
-				//release the motor
-				release2();
+				release2();		//release the motor
 				Serial.print("Brake Set & Motor Released");
-
 			}
 		}
 	}
 }
 
 #endif // MOTORSHIELD
-
 
 //    <<<<    FINISH    ---------------------------    Stepper Voids     ---------------------------
 
@@ -1316,13 +1328,13 @@ void stepperTimer()
 #ifdef DEBUG
 void drawTestLinesbyDegrees()
 {
-	int rotateColourArray[] = { 0x001F, 0x07E0, 0x07FF, 0xF800, 0xF81F, 0xFFE0, 0xFFFF, 0xFD20, 0xAFE5, 0xF81F }; // BLUE, GREEN, CYAN, RED, MAGENTA, YELLOW, WHITE, ORANGE, GREENYELLOW, PINK
+int rotateColourArray[] = { 0x001F, 0x07E0, 0x07FF, 0xF800, 0xF81F, 0xFFE0, 0xFFFF, 0xFD20, 0xAFE5, 0xF81F }; // BLUE, GREEN, CYAN, RED, MAGENTA, YELLOW, WHITE, ORANGE, GREENYELLOW, PINK
 
-	for (int i = 0; i < 8; i++)
-	{
-		int angle = i * 45;
-		drawTrackLine(correctAngle(angle), correctAngle(angle), turntableParameters[0], turntableParameters[0] + turntableParameters[2], 0, rotateColourArray[i]);
-	}
+for (int i = 0; i < 8; i++)
+{
+int angle = i * 45;
+drawTrackLine(correctAngle(angle), correctAngle(angle), turntableParameters[0], turntableParameters[0] + turntableParameters[2], 0, rotateColourArray[i]);
+}
 }
 #endif //DEBUG
 */
